@@ -12,7 +12,7 @@ namespace App.Domain;
 public class Booking : AuditableEntity, IDomainAppUser<AppUser>
 {
     public Guid RoomId { get; set; }
-    public Room Room { get; set; } = default!;
+    public Room? Room { get; set; }
     public Guid AppUserId { get; set; }
     public AppUser? User { get; set; }
     public DateTime StartDate { get; set; }
