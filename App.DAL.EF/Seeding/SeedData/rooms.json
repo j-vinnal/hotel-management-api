@@ -1,0 +1,32 @@
+[
+  {
+    "RoomNumber": 101,
+    "BedCount": 2,
+    "Price": 150.0,
+    "HotelId": "5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"
+  },
+  {
+    "RoomNumber": 102,
+    "BedCount": 1,
+    "Price": 100.0,
+    "HotelId": "5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"
+  },
+  {
+    "RoomNumber": 103,
+    "BedCount": 3,
+    "Price": 200.0,
+    "HotelId": "5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"
+  },
+  {
+    "RoomNumber": 104,
+    "BedCount": 2,
+    "Price": 150.0,
+    "HotelId": "5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"
+  },
+  {
+    "RoomNumber": 105,
+    "BedCount": 1,
+    "Price": 100.0,
+    "HotelId": "5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"
+  }
+]

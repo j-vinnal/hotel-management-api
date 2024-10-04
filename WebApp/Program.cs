@@ -1,21 +1,39 @@
+using App.DAL.EF;
+using App.DAL.EF.Seeding;
+using App.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using WebApp.Data;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
                        throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(connectionString));
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connectionString));
+
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
-    .AddEntityFrameworkStores<ApplicationDbContext>();
+
+
+builder.Services
+    .AddIdentity<AppUser, AppRole>(options => options.SignIn.RequireConfirmedAccount = false)
+    .AddDefaultUI()
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
+
 builder.Services.AddControllersWithViews();
 
+// ===================================================
 var app = builder.Build();
+// ===================================================
+
+
+// Set up all the database stuff and seed initial data
+SetupAppData(app, app.Configuration);
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -39,6 +57,68 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+
+
 app.MapRazorPages();
 
 app.Run();
+
+
+static async void SetupAppData(IApplicationBuilder app, IConfiguration configuration)
+{
+    //DI engine
+    using var serviceScope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>()
+        .CreateScope();
+    
+    var env = serviceScope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+    AppDataInit.InitializeSeedDataPath(env);
+
+    await using var context = serviceScope.ServiceProvider.GetService<AppDbContext>();
+
+
+    if (context == null) throw new ApplicationException("Problem in services. Can't initialize DB Context");
+
+    using var userManager = serviceScope.ServiceProvider.GetService<UserManager<AppUser>>();
+    using var roleManager = serviceScope.ServiceProvider.GetService<RoleManager<AppRole>>();
+
+    if (userManager == null || roleManager == null)
+        throw new ApplicationException("Problem in services. Can't initialize UserManager or RoleManager");
+
+    var logger = serviceScope.ServiceProvider.GetRequiredService<ILogger<IApplicationBuilder>>();
+
+
+    if (logger == null) throw new ApplicationException("Problem in services. Can't initialize logger");
+
+    if (context.Database.ProviderName!.Contains("InMemory")) return;
+
+
+    //TODO: wait for db connection
+
+
+    if (configuration.GetValue<bool>("DataInit:DropDatabase"))
+    {
+        logger.LogWarning("Dropping Database");
+        AppDataInit.DropDatabase(context);
+    }
+
+    if (configuration.GetValue<bool>("DataInit:MigrateDatabase"))
+    {
+        logger.LogWarning("Migrating Database");
+        AppDataInit.MigrateDatabase(context);
+    }
+
+
+    if (configuration.GetValue<bool>("DataInit:SeedIdentity"))
+    {
+        logger.LogWarning("Seeding identity");
+        await AppDataInit.SeedIdentity(userManager, roleManager, logger);
+    }
+
+    if (configuration.GetValue<bool>("DataInit:SeedData"))
+    {
+        logger.LogWarning("Seeding app data...");
+        var changedEntries = await AppDataInit.SeedAppData(context);
+        logger.LogWarning($"Seeded app data: {changedEntries} entries changed");
+    }
+}

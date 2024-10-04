@@ -1,6 +1,5 @@
 ﻿
 using Base.Contracts;
-using Base.Contracts;
 
 namespace Base.Domain;
 
