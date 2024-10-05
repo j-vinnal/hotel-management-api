@@ -1,4 +1,4 @@
-@model App.Domain.Booking
+@model App.DTO.Public.v1.Booking
 
 @{
     ViewData["Title"] = "Details";
@@ -11,16 +11,23 @@
     <hr />
     <dl class="row">
         <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Room)
+            @Html.DisplayNameFor(model => model.RoomNumber)
         </dt>
         <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Room!.Id)
+            @Html.DisplayFor(model => model.RoomNumber)
         </dd>
         <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.User)
+            @Html.DisplayNameFor(model => model.QuestFirstName)
         </dt>
         <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.User!.FirstName)
+            @Html.DisplayFor(model => model.QuestFirstName)
+        </dd>
+
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.QuestLastName)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.QuestLastName)
         </dd>
         <dt class = "col-sm-2">
             @Html.DisplayNameFor(model => model.StartDate)

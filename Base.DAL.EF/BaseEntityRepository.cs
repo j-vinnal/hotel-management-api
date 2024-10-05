@@ -7,42 +7,38 @@ namespace Base.DAL.EF;
 
 public class
     BaseEntityRepository<TDomainEntity, TDalEntity, TDbContext> :
-    BaseEntityRepository<Guid, TDomainEntity, TDalEntity, TDbContext>, IBaseRepository<TDalEntity>
+    BaseEntityRepository<Guid, TDomainEntity, TDalEntity, TDbContext>, IBaseEntityRepository<TDalEntity>
     where TDomainEntity : class, IEntityId
     where TDalEntity : class, IEntityId
     where TDbContext : DbContext
 {
-    public BaseEntityRepository(TDbContext dataContext, IMapper<TDomainEntity, TDalEntity> mapper) : base(dataContext,
-        mapper)
+    public BaseEntityRepository(TDbContext dataContext, IEntityMapper<TDomainEntity, TDalEntity> entityMapper) : base(dataContext,
+        entityMapper)
     {
     }
 }
 
-public class BaseEntityRepository<TKey, TDomainEntity, TDalEntity, TDbContext> : IBaseRepository<TDalEntity, TKey>
+public class BaseEntityRepository<TKey, TDomainEntity, TDalEntity, TDbContext> : IBaseEntityRepository<TDalEntity, TKey>
     where TDomainEntity : class, IEntityId<TKey>
     where TDalEntity : class, IEntityId<TKey>
     where TKey : struct, IEquatable<TKey>
     where TDbContext : DbContext
 {
-    protected readonly IMapper<TDomainEntity, TDalEntity> Mapper;
-
-    // protected means its accessible in this class and in classes that inherit from this class
+    protected readonly IEntityMapper<TDomainEntity, TDalEntity> EntityMapper;
     protected TDbContext RepositoryDbContext;
     protected DbSet<TDomainEntity> RepositoryDbSet;
 
-    public BaseEntityRepository(TDbContext dataContext, IMapper<TDomainEntity, TDalEntity> mapper)
+    public BaseEntityRepository(TDbContext dataContext, IEntityMapper<TDomainEntity, TDalEntity> entityMapper)
     {
         RepositoryDbContext = dataContext ?? throw new ArgumentNullException(nameof(dataContext));
-        Mapper = mapper;
+        EntityMapper = entityMapper;
         RepositoryDbSet = RepositoryDbContext.Set<TDomainEntity>();
     }
 
-
-    // virtual means that the method can be overridden in a derived class
-
+    
     public virtual async Task<TDalEntity?> FindAsync(TKey id, TKey? userId = default, bool noTracking = true)
     {
-        var test =Mapper.Map(await CreateQuery(userId, noTracking)
+        var test =EntityMapper.Map(await CreateQuery(userId, noTracking)
             .FirstOrDefaultAsync(e => e.Id.Equals(id)));
         return test;
     }
@@ -50,23 +46,23 @@ public class BaseEntityRepository<TKey, TDomainEntity, TDalEntity, TDbContext> :
 
     public virtual IEnumerable<TDalEntity> GetAll(TKey userId = default, bool noTracking = true)
     {
-        return CreateQuery(userId, noTracking).ToList().Select(e => Mapper.Map(e))!;
+        return CreateQuery(userId, noTracking).ToList().Select(e => EntityMapper.Map(e))!;
     }
 
     public virtual async Task<IEnumerable<TDalEntity>> GetAllAsync(TKey userId = default, bool noTracking = true)
     {
-        return (await CreateQuery(userId, noTracking).ToListAsync()).Select(e => Mapper.Map(e))!;
+        return (await CreateQuery(userId, noTracking).ToListAsync()).Select(e => EntityMapper.Map(e))!;
     }
 
 
     public virtual TDalEntity Add(TDalEntity entity)
     {
-        return Mapper.Map(RepositoryDbSet.Add(Mapper.Map(entity)!).Entity)!;
+        return EntityMapper.Map(RepositoryDbSet.Add(EntityMapper.Map(entity)!).Entity)!;
     }
 
     public virtual TDalEntity Update(TDalEntity entity)
     {
-        return Mapper.Map(RepositoryDbSet.Update(Mapper.Map(entity)!).Entity)!;
+        return EntityMapper.Map(RepositoryDbSet.Update(EntityMapper.Map(entity)!).Entity)!;
     }
 
 

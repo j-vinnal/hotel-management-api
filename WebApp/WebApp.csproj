@@ -20,6 +20,8 @@
     <ItemGroup>
       <ProjectReference Include="..\App.DAL.EF\App.DAL.EF.csproj" />
       <ProjectReference Include="..\App.Domain\App.Domain.csproj" />
+      <ProjectReference Include="..\App.DTO.Public\App.DTO.Public.csproj" />
+      <ProjectReference Include="..\App.Public\App.Public.csproj" />
     </ItemGroup>
 
 </Project>

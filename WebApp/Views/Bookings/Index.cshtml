@@ -1,4 +1,4 @@
-@model IEnumerable<App.Domain.Booking>
+@model IEnumerable<App.DTO.Public.v1.Booking>
 
 @{
     ViewData["Title"] = "Index";
@@ -13,11 +13,16 @@
     <thead>
         <tr>
             <th>
-                @Html.DisplayNameFor(model => model.Room)
+                @Html.DisplayNameFor(model => model.RoomNumber)
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.User)
+                @Html.DisplayNameFor(model => model.QuestFirstName)
             </th>
+            <th>
+                @Html.DisplayNameFor(model => model.QuestLastName)
+            </th>
+            
+            
             <th>
                 @Html.DisplayNameFor(model => model.StartDate)
             </th>
@@ -34,10 +39,13 @@
 @foreach (var item in Model) {
         <tr>
             <td>
-                @Html.DisplayFor(modelItem => item.Room!.RoomNumber)
+                @Html.DisplayFor(modelItem => item.RoomNumber)
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.User!.FirstName)
+                @Html.DisplayFor(modelItem => item.QuestFirstName)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.QuestLastName)
             </td>
             <td>
                 @item.StartDate.ToString("yyyy-MM-dd")

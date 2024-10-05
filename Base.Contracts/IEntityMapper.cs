@@ -1,6 +1,6 @@
 ﻿namespace Base.Contracts;
 
-public interface IMapper<TSource, TDest>
+public interface IEntityMapper<TSource, TDest>
     where TSource : class
     where TDest : class
 {

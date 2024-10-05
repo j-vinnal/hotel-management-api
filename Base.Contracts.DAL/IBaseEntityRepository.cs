@@ -2,12 +2,12 @@
 
 namespace Base.Contracts.DAL;
 
-public interface IBaseRepository<TEntity> : IBaseRepository<TEntity, Guid>
+public interface IBaseEntityRepository<TEntity> : IBaseEntityRepository<TEntity, Guid>
     where TEntity : class, IEntityId
 {
 }
 
-public interface IBaseRepository<TEntity, TKey>
+public interface IBaseEntityRepository<TEntity, TKey>
     where TEntity : class, IEntityId<TKey>
     where TKey : struct, IEquatable<TKey>
 {
@@ -15,11 +15,7 @@ public interface IBaseRepository<TEntity, TKey>
     //Have to think how to solve dropdown ViewData
     // IEnumerable<TEntity?> All();
 
-
-    //TODO too expensive
-    //tracking is expensive
-
-
+    
     Task<TEntity?> FindAsync(TKey id, TKey? userId = default, bool noTracking = true);
 
     IEnumerable<TEntity> GetAll(TKey userId = default, bool noTracking = true);

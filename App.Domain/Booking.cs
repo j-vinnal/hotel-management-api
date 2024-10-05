@@ -7,8 +7,6 @@ namespace App.Domain;
 
 
 [Index(nameof(RoomId), nameof(StartDate), nameof(EndDate), IsUnique = true)]
-
-
 public class Booking : AuditableEntity, IDomainAppUser<AppUser>
 {
     public Guid RoomId { get; set; }

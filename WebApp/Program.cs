@@ -1,3 +1,4 @@
+using App.Contracts.DAL;
 using App.DAL.EF;
 using App.DAL.EF.Seeding;
 using App.Domain.Identity;
@@ -15,7 +16,15 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
+builder.Services.AddScoped<IAppUnitOfWork, AppUnitOfWork>();
 
+
+// reference any class from class library to be scanned for mapper configurations
+builder.Services.AddAutoMapper(
+    typeof(App.DAL.EF.AutoMapperProfile),
+    typeof(App.Public.AutoMapperProfile),
+    typeof(AutoMapperProfile)
+);
 
 builder.Services
     .AddIdentity<AppUser, AppRole>(options => options.SignIn.RequireConfirmedAccount = false)

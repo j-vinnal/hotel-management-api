@@ -3,14 +3,14 @@ using Base.Contracts;
 
 namespace Base.DAL;
 
-public class BaseMapper<TSource, TDest> : IMapper<TSource, TDest>
+public class BaseEntityMapper<TSource, TDest> : IEntityMapper<TSource, TDest>
     where TSource : class
     where TDest : class
 {
     // Should use dependency injection here
     protected readonly IMapper Mapper;
 
-    public BaseMapper(IMapper mapper)
+    public BaseEntityMapper(IMapper mapper)
     {
         Mapper = mapper;
     }
