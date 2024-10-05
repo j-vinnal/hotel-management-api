@@ -1,14 +1,21 @@
 using System.Globalization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 using App.BLL;
 using App.Contracts.BLL;
 using App.Contracts.DAL;
 using App.DAL.EF;
 using App.DAL.EF.Seeding;
 using App.Domain.Identity;
+using Asp.Versioning;
+using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using Swashbuckle.AspNetCore.SwaggerGen;
+using WebApp;
 using AutoMapperProfile = App.DAL.EF.AutoMapperProfile;
 
 
@@ -38,6 +45,39 @@ builder.Services
     .AddDefaultUI()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
+
+
+// clear default claims
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+builder.Services
+    .AddAuthentication()
+    .AddCookie(options => { options.SlidingExpiration = true; })
+    .AddJwtBearer(options =>
+    {
+        options.RequireHttpsMetadata = false;
+        options.SaveToken = false;
+        options.TokenValidationParameters = new TokenValidationParameters()
+        {
+            ValidIssuer = builder.Configuration.GetValue<string>("JWT:issuer"),
+            ValidAudience = builder.Configuration.GetValue<string>("JWT:audience"),
+            IssuerSigningKey =
+                new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(builder.Configuration.GetValue<string>("JWT:Key") ??
+                                           throw new InvalidOperationException())),
+            ClockSkew = TimeSpan.Zero,
+        };
+    });
+
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsAllowAll", policy =>
+    {
+        policy.AllowAnyHeader();
+        policy.AllowAnyMethod();
+        policy.AllowAnyOrigin();
+    });
+});
 
 
 builder.Services.AddControllersWithViews();
@@ -72,6 +112,28 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
 });
 
 
+var apiVersioningBuilder = builder.Services.AddApiVersioning(options =>
+{
+    options.ReportApiVersions = true;
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+});
+apiVersioningBuilder.AddApiExplorer(options =>
+{
+    // add the versioned api explorer, which also adds IApiVersionDescriptionProvider service
+    // note: the specified format code will format the version as "'v'major[.minor][-status]"
+    options.GroupNameFormat = "'v'VVV";
+
+    // note: this option is only necessary when versioning by url segment. the SubstitutionFormat
+    // can also be used to control the format of the API version in route templates
+    options.SubstituteApiVersionInUrl = true;
+});
+
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
+builder.Services.AddSwaggerGen();
+
+
 // ===================================================
 var app = builder.Build();
 // ===================================================
@@ -98,11 +160,29 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseCors("CorsAllowAll");
+
 app.UseRequestLocalization(options:
     app.Services.GetService<IOptions<RequestLocalizationOptions>>()?.Value!
 );
 
 app.UseAuthorization();
+
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    var provider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
+    foreach (var description in provider.ApiVersionDescriptions)
+    {
+        options.SwaggerEndpoint(
+            $"/swagger/{description.GroupName}/swagger.json",
+            description.GroupName.ToUpperInvariant()
+        );
+    }
+    // serve from root
+    // options.RoutePrefix = string.Empty;
+});
+
 
 app.MapControllerRoute(
     name: "default",
