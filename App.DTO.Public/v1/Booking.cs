@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Base.Contracts;
 
 namespace App.DTO.Public.v1;
@@ -11,7 +12,10 @@ public class Booking : IEntityId
     public string? QuestLastName { get; set; }
     
     public Guid? QuestId { get; set; }
+    
+
     public DateTime StartDate { get; set; }
+
     public DateTime EndDate { get; set; }
     public bool IsCancelled { get; set; } = false;
 }

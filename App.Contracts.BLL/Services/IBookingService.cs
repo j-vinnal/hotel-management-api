@@ -7,4 +7,5 @@ namespace App.Contracts.BLL.Services;
 public interface IBookingService : IBaseEntityRepository<Booking>, IBookingRepositoryCustom<Booking>
 {
     // Define additional methods if needed
+    
 }

@@ -71,17 +71,28 @@ namespace WebApp.Controllers
         }
 
         // GET: Bookings/Create
-        public async Task<IActionResult> Create()
+        public async Task<IActionResult> Create(DateTime? startDate, DateTime? endDate)
         {
             if (User.IsInRole("Admin"))
             {
                 var users = await _userManager.Users.ToListAsync();
                 ViewBag.AppUserId = new SelectList(users, "Id", "Email");
             }
+            
+            var start = startDate ?? DateTime.UtcNow;
+
+            var end = endDate ?? DateTime.UtcNow.AddDays(1);
+
             var viewModel = new BookingViewModel
             {
-                RoomSelectList = new SelectList(_bll.RoomService.GetAll(), "Id", "RoomNumber")
+                RoomSelectList = new SelectList(await _bll.RoomService.GetAvailableRoomsAsync(start, end), "Id", "RoomNumber"),
+                Booking = new App.DTO.Public.v1.Booking
+                {
+                    StartDate = start, 
+                    EndDate = end  
+                }
             };
+
             return View(viewModel);
         }
 
@@ -113,16 +124,17 @@ namespace WebApp.Controllers
         public async Task<IActionResult> Edit(Guid? id)
         {
             if (id == null) return NotFound();
+
             App.DTO.BLL.Booking? booking;
 
             if (User.IsInRole("Admin"))
             {
-                // Admin can view any booking
+                // Admin can edit any booking
                 booking = await _bll.BookingService.FindWithDetailsAsync(id.Value);
             }
             else
             {
-                // Non-admin users can only view their own bookings
+                // Non-admin users can only edit their own bookings
                 var userId = Guid.Parse(_userManager.GetUserId(User));
                 booking = await _bll.BookingService.FindWithDetailsAsync(id.Value, userId);
             }
@@ -131,8 +143,11 @@ namespace WebApp.Controllers
 
             var bookingDto = _mapper.Map(booking)!;
 
-            ViewData["RoomId"] = new SelectList(_bll.RoomService.GetAll(), "Id", "RoomNumber", booking.RoomId);
+            // Fetch available rooms for the booking's date range
+            var availableRooms = await _bll.RoomService.GetAvailableRoomsAsync(booking.StartDate, booking.EndDate);
+            ViewData["RoomId"] = new SelectList(availableRooms, "Id", "RoomNumber", booking.RoomId);
             ViewData["AppUserId"] = new SelectList(await _userManager.Users.ToListAsync(), "Id", "Email", booking.QuestId);
+
             return View(bookingDto);
         }
 
@@ -148,6 +163,11 @@ namespace WebApp.Controllers
                 try
                 {
                     var entityDal = _mapper.Map(booking)!;
+
+                    // Set the time component to the current time
+                    entityDal.StartDate = entityDal.StartDate.Date + DateTime.Now.TimeOfDay;
+                    entityDal.EndDate = entityDal.EndDate.Date + DateTime.Now.TimeOfDay;
+
                     _bll.BookingService.Update(entityDal);
                     await _bll.SaveChangesAsync();
                 }
@@ -166,10 +186,12 @@ namespace WebApp.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            ViewData["RoomId"] = new SelectList(_bll.RoomService.GetAll(), "Id", "RoomNumber", booking.RoomId);
+            // If model state is invalid, repopulate the room selection list
+            var availableRooms = await _bll.RoomService.GetAvailableRoomsAsync(booking.StartDate, booking.EndDate);
+            ViewData["RoomId"] = new SelectList(availableRooms, "Id", "RoomNumber", booking.RoomId);
+
             return View(booking);
         }
-
 
         // GET: Admin/Contests/Delete/5
         public async Task<IActionResult> Delete(Guid? id)
@@ -235,6 +257,12 @@ namespace WebApp.Controllers
         private bool BookingExists(Guid id)
         {
             return _bll.BookingService.Exists(id);
+        }
+
+        public async Task<IActionResult> GetAvailableRooms(DateTime startDate, DateTime endDate)
+        {
+            var availableRooms = await _bll.RoomService.GetAvailableRoomsAsync(startDate, endDate);
+            return Json(availableRooms.Select(r => new { r.Id, r.RoomNumber }));
         }
     }
 }

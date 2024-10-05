@@ -30,4 +30,5 @@ public class BookingService : BaseEntityService<Booking, DTO.DAL.Booking, IBooki
         
         return EntityMapper.Map(await Repository.FindWithDetailsAsync(id, userId));
     }
+    
 }

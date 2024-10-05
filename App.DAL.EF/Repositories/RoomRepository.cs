@@ -54,5 +54,34 @@ public class RoomRepository : BaseEntityRepository<Room, DTO.DAL.Room, AppDbCont
 
         return await query.FirstOrDefaultAsync();
     }
+
+    public async Task<IEnumerable<DTO.DAL.Room>> GetAvailableRoomsAsync(DateTime startDate, DateTime endDate, bool noTracking = true)
+    {
+        var bookedRoomIds = await RepositoryDbContext.Bookings
+            .Where(b => !b.IsCancelled && 
+                        ((b.StartDate <= startDate && b.EndDate > startDate) || 
+                         (b.StartDate < endDate && b.EndDate >= endDate) || 
+                         (b.StartDate >= startDate && b.EndDate <= endDate)))
+            .Select(b => b.RoomId)
+            .ToListAsync();
+
+        var query = RepositoryDbSet
+            .Where(r => !bookedRoomIds.Contains(r.Id));
+
+        if (noTracking) query = query.AsNoTracking();
+
+        return await query.Select(r => new DTO.DAL.Room
+        {
+            Id = r.Id,
+            RoomNumber = r.RoomNumber,
+            BedCount = r.BedCount,
+            Price = r.Price,
+            HotelName = r.Hotel!.Name,
+            HotelId = r.Hotel.Id
+        }).ToListAsync();
+    }
+    
+    
+    
 }
 

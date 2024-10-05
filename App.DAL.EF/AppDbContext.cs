@@ -4,6 +4,7 @@ using Base.Contracts.Domain;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace App.DAL.EF;
 
@@ -31,35 +32,37 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid, IdentityUs
         foreach (var foreignKey in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
             foreignKey.DeleteBehavior = DeleteBehavior.Restrict;
 
-
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes()
-                     .Where(e => typeof(IDomainAuditableEntity).IsAssignableFrom(e.ClrType)))
+        // Set a global convention for DateTime properties to be treated as UTC
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
-            modelBuilder.Entity(entityType.ClrType)
-                .Property<DateTime>(nameof(IDomainAuditableEntity.UpdatedAtDt))
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-            modelBuilder.Entity(entityType.ClrType)
-                .Property<DateTime>(nameof(IDomainAuditableEntity.CreatedAtDt))
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(DateTime) || property.ClrType == typeof(DateTime?))
+                {
+                    property.SetValueConverter(new ValueConverter<DateTime, DateTime>(
+                        v => DateTime.SpecifyKind(v, DateTimeKind.Utc), // When saving to the database
+                        v => DateTime.SpecifyKind(v, DateTimeKind.Utc))); // When reading from the database
+                }
+            }
         }
     }
 
- public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new())
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new())
     {
         foreach (var entity in ChangeTracker.Entries().Where(e => e.State != EntityState.Deleted))
         {
-            foreach (var prop in entity
-                         .Properties
-                         .Where(x => x.Metadata.ClrType == typeof(DateTime)))
+            if (entity.Entity is IDomainAuditableEntity auditableEntity)
             {
-                if (prop.CurrentValue != null)
+                if (entity.State == EntityState.Added)
                 {
-                    prop.CurrentValue = ((DateTime)prop.CurrentValue).ToUniversalTime();
+                    auditableEntity.CreatedAtDt = DateTime.UtcNow;
                 }
+
+                auditableEntity.UpdatedAtDt = DateTime.UtcNow;
             }
         }
 
         return base.SaveChangesAsync(cancellationToken);
     }
+    
 }

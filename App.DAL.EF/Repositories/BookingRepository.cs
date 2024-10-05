@@ -62,4 +62,5 @@ public class BookingRepository : BaseEntityRepository<Booking, App.DTO.DAL.Booki
 
         return await query.FirstOrDefaultAsync();
     }
+    
 }

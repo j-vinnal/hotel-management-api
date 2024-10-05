@@ -18,7 +18,7 @@ dotnet tool update -g dotnet-aspnet-codegenerator
 Run from solution folder
 
 ~~~bash
-dotnet ef migrations --project App.DAL.EF --startup-project WebApp add initial-db
+dotnet ef migrations --project App.DAL.EF --startup-project WebApp add first-db
 ~~~
 ~~~bash
 dotnet ef database   --project App.DAL.EF --startup-project WebApp update
