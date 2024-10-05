@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace App.DAL.EF.Migrations
 {
     /// <inheritdoc />
-    public partial class initialdb : Migration
+    public partial class firstdb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -193,9 +193,9 @@ namespace App.DAL.EF.Migrations
                     Email = table.Column<string>(type: "text", nullable: false),
                     AppUserId = table.Column<Guid>(type: "uuid", nullable: false),
                     UpdatedBy = table.Column<string>(type: "text", nullable: true),
-                    UpdatedAtDt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    UpdatedAtDt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<string>(type: "text", nullable: true),
-                    CreatedAtDt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
+                    CreatedAtDt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -218,9 +218,9 @@ namespace App.DAL.EF.Migrations
                     Price = table.Column<decimal>(type: "numeric", nullable: false),
                     HotelId = table.Column<Guid>(type: "uuid", nullable: false),
                     UpdatedBy = table.Column<string>(type: "text", nullable: true),
-                    UpdatedAtDt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    UpdatedAtDt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<string>(type: "text", nullable: true),
-                    CreatedAtDt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
+                    CreatedAtDt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -244,9 +244,9 @@ namespace App.DAL.EF.Migrations
                     EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IsCancelled = table.Column<bool>(type: "boolean", nullable: false),
                     UpdatedBy = table.Column<string>(type: "text", nullable: true),
-                    UpdatedAtDt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    UpdatedAtDt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<string>(type: "text", nullable: true),
-                    CreatedAtDt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
+                    CreatedAtDt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {

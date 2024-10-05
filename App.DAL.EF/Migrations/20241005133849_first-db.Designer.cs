@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace App.DAL.EF.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241004204404_initial-db")]
-    partial class initialdb
+    [Migration("20241005133849_first-db")]
+    partial class firstdb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -35,9 +35,7 @@ namespace App.DAL.EF.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAtDt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -55,9 +53,7 @@ namespace App.DAL.EF.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("UpdatedAtDt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -87,9 +83,7 @@ namespace App.DAL.EF.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAtDt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -108,9 +102,7 @@ namespace App.DAL.EF.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAtDt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
@@ -289,9 +281,7 @@ namespace App.DAL.EF.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAtDt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
@@ -306,9 +296,7 @@ namespace App.DAL.EF.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAtDt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");

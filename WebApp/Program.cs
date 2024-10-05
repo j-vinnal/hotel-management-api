@@ -1,9 +1,15 @@
+using System.Globalization;
+using App.BLL;
+using App.Contracts.BLL;
 using App.Contracts.DAL;
 using App.DAL.EF;
 using App.DAL.EF.Seeding;
 using App.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using AutoMapperProfile = App.DAL.EF.AutoMapperProfile;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,11 +23,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddScoped<IAppUnitOfWork, AppUnitOfWork>();
+builder.Services.AddScoped<IAppBLL, AppBLL>();
 
 
 // reference any class from class library to be scanned for mapper configurations
 builder.Services.AddAutoMapper(
-    typeof(App.DAL.EF.AutoMapperProfile),
+    typeof(App.BLL.AutoMapperProfile),
     typeof(App.Public.AutoMapperProfile),
     typeof(AutoMapperProfile)
 );
@@ -34,6 +41,36 @@ builder.Services
 
 
 builder.Services.AddControllersWithViews();
+
+
+var supportedCultures = builder.Configuration
+    .GetSection("SupportedCultures")
+    .GetChildren()
+    .Select(x => new CultureInfo(x.Value))
+    .ToArray();
+
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    // datetime and currency support
+    options.SupportedCultures = supportedCultures;
+    // UI translated strings
+    options.SupportedUICultures = supportedCultures;
+    // if nothing is found, use this
+    // TODO: why does it fall back to et-EE, even if default is something else
+    options.DefaultRequestCulture =
+        new RequestCulture(
+            builder.Configuration["DefaultCulture"],
+            builder.Configuration["DefaultCulture"]);
+    options.SetDefaultCulture(builder.Configuration["DefaultCulture"]);
+
+    options.RequestCultureProviders = new List<IRequestCultureProvider>
+    {
+        // Order is important, its in which order they will be evaluated
+        new QueryStringRequestCultureProvider(),
+        new CookieRequestCultureProvider()
+    };
+});
+
 
 // ===================================================
 var app = builder.Build();
@@ -60,6 +97,10 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseRequestLocalization(options:
+    app.Services.GetService<IOptions<RequestLocalizationOptions>>()?.Value!
+);
 
 app.UseAuthorization();
 

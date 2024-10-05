@@ -4,58 +4,66 @@
 
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Create Booking";
     var isAdmin = User.IsInRole("Admin");
 }
 
-<h1>Create</h1>
+<h1>Create Booking</h1>
 
-<h4>Booking</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="All" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="Booking.RoomId" class="control-label"></label>
-                <select asp-for="Booking.RoomId" class="form-control" asp-items="Model.RoomSelectList"></select>
-                <span asp-validation-for="Booking.RoomId" class="text-danger"></span>
-            </div>
 
-                       @if (isAdmin)
-            {
-                <div class="form-group">
-                    <label asp-for="Booking.QuestId" class="control-label"></label>
-                    <select asp-for="Booking.QuestId" class="form-control" asp-items="ViewBag.AppUserId"></select>
-                    <span asp-validation-for="Booking.QuestId" class="text-danger"></span>
-                </div>
-            }
-            else
-            {
-                <input type="hidden" asp-for="Booking.QuestId" value="@User.FindFirstValue(ClaimTypes.NameIdentifier)" />
-            }
-
-            <div class="form-group">
-                <label asp-for="Booking.StartDate" class="control-label"></label>
-                <input asp-for="Booking.StartDate" class="form-control" type="date" />
-                <span asp-validation-for="Booking.StartDate" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Booking.EndDate" class="control-label"></label>
-                <input asp-for="Booking.EndDate" class="form-control" type="date" />
-                <span asp-validation-for="Booking.EndDate" class="text-danger"></span>
-            </div>
-            <div class="form-group form-check">
-                <label class="form-check-label">
-                    <input class="form-check-input" asp-for="Booking.IsCancelled" /> @Html.DisplayNameFor(model => model.Booking.IsCancelled)
-                </label>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+<!-- Form to update available rooms and create a booking -->
+<form asp-action="Create" method="get" class="mb-3">
+    <div class="form-group">
+        <label asp-for="Booking.StartDate" class="control-label"></label>
+        <input asp-for="Booking.StartDate" class="form-control" type="datetime-local" name="startDate" value="@Model.Booking.StartDate.ToString("yyyy-MM-ddTHH:mm")" />
+        <span asp-validation-for="Booking.StartDate" class="text-danger"></span>
     </div>
-</div>
+    <div class="form-group">
+        <label asp-for="Booking.EndDate" class="control-label"></label>
+        <input asp-for="Booking.EndDate" class="form-control" type="datetime-local" name="endDate" value="@Model.Booking.EndDate.ToString("yyyy-MM-ddTHH:mm")" />
+        <span asp-validation-for="Booking.EndDate" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <input type="submit" value="Update Rooms" class="btn btn-secondary" />
+    </div>
+</form>
+
+<!-- Main form to create a booking -->
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="All" class="text-danger"></div>
+    
+    <!-- Hidden fields to pass StartDate and EndDate -->
+    <input type="hidden" asp-for="Booking.StartDate" value="@Model.Booking.StartDate.ToString("yyyy-MM-ddTHH:mm")" />
+    <input type="hidden" asp-for="Booking.EndDate" value="@Model.Booking.EndDate.ToString("yyyy-MM-ddTHH:mm")" />
+
+    <div class="form-group">
+        <label asp-for="Booking.RoomId" class="control-label"></label>
+        <select asp-for="Booking.RoomId" class="form-control" asp-items="Model.RoomSelectList"></select>
+        <span asp-validation-for="Booking.RoomId" class="text-danger"></span>
+    </div>
+
+    @if (User.IsInRole("Admin"))
+    {
+        <div class="form-group">
+            <label asp-for="Booking.QuestId" class="control-label"></label>
+            <select asp-for="Booking.QuestId" class="form-control" asp-items="ViewBag.AppUserId"></select>
+            <span asp-validation-for="Booking.QuestId" class="text-danger"></span>
+        </div>
+    }
+    else
+    {
+        <input type="hidden" asp-for="Booking.QuestId" value="@User.FindFirstValue(ClaimTypes.NameIdentifier)" />
+    }
+
+    <div class="form-group form-check">
+        <label class="form-check-label">
+            <input class="form-check-input" asp-for="Booking.IsCancelled" /> @Html.DisplayNameFor(model => model.Booking.IsCancelled)
+        </label>
+    </div>
+    <div class="form-group">
+        <input type="submit" value="Create Booking" class="btn btn-primary" />
+    </div>
+</form>
 
 <div>
     <a asp-action="Index">Back to List</a>
@@ -64,4 +72,5 @@
 @section Scripts {
 @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
 }
+
 

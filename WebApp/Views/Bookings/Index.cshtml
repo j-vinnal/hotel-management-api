@@ -32,6 +32,7 @@
             <th>
                 @Html.DisplayNameFor(model => model.IsCancelled)
             </th>
+      
             <th></th>
         </tr>
     </thead>
@@ -48,14 +49,15 @@
                 @Html.DisplayFor(modelItem => item.QuestLastName)
             </td>
             <td>
-                @item.StartDate.ToString("yyyy-MM-dd")
+                @Html.DisplayFor(modelItem => item.StartDate)
             </td>
             <td>
-                @item.EndDate.ToString("yyyy-MM-dd")
+                @Html.DisplayFor(modelItem => item.EndDate)
             </td>
             <td>
                 @Html.DisplayFor(modelItem => item.IsCancelled)
             </td>
+        
             <td>
                 <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
                 <a asp-action="Details" asp-route-id="@item.Id">Details</a> |

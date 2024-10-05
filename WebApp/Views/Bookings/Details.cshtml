@@ -33,13 +33,13 @@
             @Html.DisplayNameFor(model => model.StartDate)
         </dt>
         <dd class="col-sm-10">
-            @Model.StartDate.ToString("yyyy-MM-dd")
+            @Html.DisplayFor(model => model.StartDate)
         </dd>
         <dt class = "col-sm-2">
             @Html.DisplayNameFor(model => model.EndDate)
         </dt>
         <dd class="col-sm-10">
-            @Model.EndDate.ToString("yyyy-MM-dd")
+            @Html.DisplayFor(model => model.EndDate)
         </dd>
         <dt class = "col-sm-2">
             @Html.DisplayNameFor(model => model.IsCancelled)

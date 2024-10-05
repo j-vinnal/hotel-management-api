@@ -11,7 +11,6 @@ public abstract class AuditableEntity : AuditableEntity<Guid>, IEntityId
 
 public abstract class AuditableEntity<TKey> : EntityId<TKey>, IDomainAuditableEntity
     where TKey : struct, IEquatable<TKey>
-
 {
     [ScaffoldColumn(false)] public string? UpdatedBy { get; set; }
 
@@ -20,6 +19,5 @@ public abstract class AuditableEntity<TKey> : EntityId<TKey>, IDomainAuditableEn
     [ScaffoldColumn(false)] public string? CreatedBy { get; set; }
 
     [ScaffoldColumn(false)]
-    [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
     public DateTime CreatedAtDt { get; set; } = DateTime.UtcNow;
 }

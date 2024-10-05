@@ -1,31 +1,32 @@
+using App.Contracts.BLL;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using AutoMapper;
-using App.Contracts.DAL;
 using App.Domain.Identity;
 using App.Public;
 using Microsoft.AspNetCore.Identity;
+using Base.Helpers;
 
 namespace WebApp.Controllers
 {
     public class HotelsController : Controller
     {
-        private readonly IAppUnitOfWork _uow;
+        private readonly IAppBLL _bll;
         private readonly UserManager<AppUser> _userManager;
-        private readonly BllPublicMapper<App.DTO.DAL.Hotel, App.DTO.Public.v1.Hotel> _mapper;
+        private readonly BllPublicMapper<App.DTO.BLL.Hotel, App.DTO.Public.v1.Hotel> _mapper;
 
-        public HotelsController(IAppUnitOfWork uow, UserManager<AppUser> userManager, IMapper autoMapper)
+        public HotelsController(IAppBLL bll, UserManager<AppUser> userManager, IMapper autoMapper)
         {
-            _uow = uow;
+            _bll = bll;
             _userManager = userManager;
-            _mapper = new BllPublicMapper<App.DTO.DAL.Hotel, App.DTO.Public.v1.Hotel>(autoMapper);
+            _mapper = new BllPublicMapper<App.DTO.BLL.Hotel, App.DTO.Public.v1.Hotel>(autoMapper);
         }
 
         // GET: Hotels
         public async Task<IActionResult> Index()
         {
-            var hotels = await _uow.HotelRepository.GetAllAsync();
+            var hotels = await _bll.HotelService.GetAllAsync();
             var hotelDtos = hotels.Select(h => _mapper.Map(h)).ToList();
             return View(hotelDtos);
         }
@@ -35,7 +36,7 @@ namespace WebApp.Controllers
         {
             if (id == null) return NotFound();
 
-            var hotel = await _uow.HotelRepository.FindAsync(id.Value);
+            var hotel = await _bll.HotelService.FindAsync(id.Value);
             if (hotel == null) return NotFound();
 
             var hotelDto = _mapper.Map(hotel);
@@ -43,7 +44,7 @@ namespace WebApp.Controllers
         }
 
         // GET: Hotels/Create
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleConstants.Admin)]
         public IActionResult Create()
         {
             return View();
@@ -52,27 +53,27 @@ namespace WebApp.Controllers
         // POST: Hotels/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleConstants.Admin)]
         public async Task<IActionResult> Create(App.DTO.Public.v1.Hotel hotel)
         {
             if (ModelState.IsValid)
             {
                 var entityDal = _mapper.Map(hotel)!;
                 entityDal.AppUserId = Guid.Parse(_userManager.GetUserId(User));
-                _uow.HotelRepository.Add(entityDal);
-                await _uow.SaveChangesAsync();
+                _bll.HotelService.Add(entityDal);
+                await _bll.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
             return View(hotel);
         }
 
         // GET: Hotels/Edit/5
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleConstants.Admin)]
         public async Task<IActionResult> Edit(Guid? id)
         {
             if (id == null) return NotFound();
 
-            var hotel = await _uow.HotelRepository.FindAsync(id.Value);
+            var hotel = await _bll.HotelService.FindAsync(id.Value);
             if (hotel == null) return NotFound();
 
             var hotelDto = _mapper.Map(hotel);
@@ -82,7 +83,7 @@ namespace WebApp.Controllers
         // POST: Hotels/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleConstants.Admin)]
         public async Task<IActionResult> Edit(Guid id, App.DTO.Public.v1.Hotel hotel)
         {
             if (id != hotel.Id) return NotFound();
@@ -93,8 +94,8 @@ namespace WebApp.Controllers
                 {
                     var entityDal = _mapper.Map(hotel)!;
                     entityDal.AppUserId = Guid.Parse(_userManager.GetUserId(User));
-                    _uow.HotelRepository.Update(entityDal);
-                    await _uow.SaveChangesAsync();
+                    _bll.HotelService.Update(entityDal);
+                    await _bll.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -113,12 +114,12 @@ namespace WebApp.Controllers
         }
 
         // GET: Hotels/Delete/5
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleConstants.Admin)]
         public async Task<IActionResult> Delete(Guid? id)
         {
             if (id == null) return NotFound();
 
-            var hotel = await _uow.HotelRepository.FindAsync(id.Value);
+            var hotel = await _bll.HotelService.FindAsync(id.Value);
             if (hotel == null) return NotFound();
 
             var hotelDto = _mapper.Map(hotel);
@@ -128,21 +129,21 @@ namespace WebApp.Controllers
         // POST: Hotels/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleConstants.Admin)]
         public async Task<IActionResult> DeleteConfirmed(Guid id)
         {
-            var hotel = await _uow.HotelRepository.FindAsync(id);
+            var hotel = await _bll.HotelService.FindAsync(id);
             if (hotel != null)
             {
-                _uow.HotelRepository.Remove(hotel);
-                await _uow.SaveChangesAsync();
+                _bll.HotelService.Remove(hotel);
+                await _bll.SaveChangesAsync();
             }
             return RedirectToAction(nameof(Index));
         }
 
         private bool HotelExists(Guid id)
         {
-            return _uow.HotelRepository.Exists(id);
+            return _bll.HotelService.Exists(id);
         }
     }
 }
