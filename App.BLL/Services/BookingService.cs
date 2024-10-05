@@ -30,5 +30,9 @@ public class BookingService : BaseEntityService<Booking, DTO.DAL.Booking, IBooki
         
         return EntityMapper.Map(await Repository.FindWithDetailsAsync(id, userId));
     }
-    
+
+    public async Task<bool> IsRoomBookedAsync(Guid roomId, DateTime startDate, DateTime endDate)
+    {
+       return await Repository.IsRoomBookedAsync(roomId, startDate, endDate);
+    }
 }

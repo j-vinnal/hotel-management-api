@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using WebApp.ViewModels;
 using Base.Helpers;
 using WebApp.Helpers;
+using Microsoft.AspNetCore.Authorization;
 
 namespace WebApp.Controllers
 {
@@ -53,7 +54,7 @@ namespace WebApp.Controllers
 
             App.DTO.BLL.Booking? booking;
 
-            if (User.IsInRole("Admin"))
+            if (User.IsInRole(RoleConstants.Admin))
             {
                 // Admin can view any booking
                 booking = await _bll.BookingService.FindWithDetailsAsync(id.Value);
@@ -74,7 +75,7 @@ namespace WebApp.Controllers
         // GET: Bookings/Create
         public async Task<IActionResult> Create(DateTime? startDate, DateTime? endDate)
         {
-            if (User.IsInRole("Admin"))
+            if (User.IsInRole(RoleConstants.Admin))
             {
                 var users = await _userManager.Users.ToListAsync();
                 ViewBag.AppUserId = new SelectList(users, "Id", "Email");
@@ -106,10 +107,18 @@ namespace WebApp.Controllers
             {
                 var bookingDto = _mapper.Map(viewModel.Booking)!;
 
-                // Only set QuestId automatically for non-admin users
-                if (!User.IsInRole("Admin"))
+                if (!User.IsInRole(RoleConstants.Admin))
                 {
                     bookingDto.QuestId = Guid.Parse(_userManager.GetUserId(User));
+                }
+
+                // Check if the room is available
+                bool canBook = !await _bll.BookingService.IsRoomBookedAsync(bookingDto.RoomId, bookingDto.StartDate, bookingDto.EndDate);
+                if (!canBook)
+                {
+                    ModelState.AddModelError("", "The room is already booked for the selected date range.");
+                    viewModel.RoomSelectList = new SelectList(await _bll.RoomService.GetAvailableRoomsAsync(bookingDto.StartDate, bookingDto.EndDate), "Id", "RoomNumber", bookingDto.RoomId);
+                    return View(viewModel);
                 }
 
                 _bll.BookingService.Add(bookingDto);
@@ -117,7 +126,7 @@ namespace WebApp.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            viewModel.RoomSelectList = new SelectList(_bll.RoomService.GetAll(), "Id", "RoomNumber", viewModel.Booking.RoomId);
+            viewModel.RoomSelectList = new SelectList(await _bll.RoomService.GetAvailableRoomsAsync(viewModel.Booking.StartDate, viewModel.Booking.EndDate), "Id", "RoomNumber", viewModel.Booking.RoomId);
             return View(viewModel);
         }
 
@@ -128,7 +137,7 @@ namespace WebApp.Controllers
 
             App.DTO.BLL.Booking? booking;
 
-            if (User.IsInRole("Admin"))
+            if (User.IsInRole(RoleConstants.Admin))
             {
                 // Admin can edit any booking
                 booking = await _bll.BookingService.FindWithDetailsAsync(id.Value);
@@ -155,6 +164,7 @@ namespace WebApp.Controllers
         // POST: Bookings/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = RoleConstants.Admin)]
         public async Task<IActionResult> Edit(Guid id, App.DTO.Public.v1.Booking booking)
         {
             if (id != booking.Id) return NotFound();
@@ -165,11 +175,6 @@ namespace WebApp.Controllers
                 {
                     var entityDal = _mapper.Map(booking)!;
 
-                    /*
-                    // Set the time component to the current time
-                    entityDal.StartDate = entityDal.StartDate.Date + DateTime.Now.TimeOfDay;
-                    entityDal.EndDate = entityDal.EndDate.Date + DateTime.Now.TimeOfDay;
-*/
                     _bll.BookingService.Update(entityDal);
                     await _bll.SaveChangesAsync();
                 }
@@ -188,7 +193,6 @@ namespace WebApp.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // If model state is invalid, repopulate the room selection list
             var availableRooms = await _bll.RoomService.GetAvailableRoomsAsync(booking.StartDate, booking.EndDate);
             ViewData["RoomId"] = new SelectList(availableRooms, "Id", "RoomNumber", booking.RoomId);
 
@@ -205,7 +209,7 @@ namespace WebApp.Controllers
 
             App.DTO.BLL.Booking? booking;
 
-            if (User.IsInRole("Admin"))
+            if (User.IsInRole(RoleConstants.Admin))
             {
                 // Admin can view any booking
                 booking = await _bll.BookingService.FindWithDetailsAsync(id.Value);
@@ -238,14 +242,14 @@ namespace WebApp.Controllers
                 return NotFound();
             }
 
-            if (User.IsInRole("Admin"))
+            if (User.IsInRole(RoleConstants.Admin))
             {
                 // Admin can delete any booking
                 _bll.BookingService.Remove(booking);
             }
             else
             {
-                // Use CanCancelBooking to determine if the user can cancel the booking
+            
                 if (CanCancelBooking(booking))
                 {
                     booking.IsCancelled = true;
@@ -269,7 +273,7 @@ namespace WebApp.Controllers
         private bool CanCancelBooking(App.DTO.BLL.Booking booking)
         {
 
-            if (User.IsInRole("Admin"))
+            if (User.IsInRole(RoleConstants.Admin))
             {
                 return true;
             }

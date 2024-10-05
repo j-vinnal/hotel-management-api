@@ -6,6 +6,7 @@ using AutoMapper;
 using App.Domain.Identity;
 using App.Public;
 using Microsoft.AspNetCore.Identity;
+using Base.Helpers;
 
 namespace WebApp.Controllers
 {
@@ -43,7 +44,7 @@ namespace WebApp.Controllers
         }
 
         // GET: Hotels/Create
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleConstants.Admin)]
         public IActionResult Create()
         {
             return View();
@@ -52,7 +53,7 @@ namespace WebApp.Controllers
         // POST: Hotels/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleConstants.Admin)]
         public async Task<IActionResult> Create(App.DTO.Public.v1.Hotel hotel)
         {
             if (ModelState.IsValid)
@@ -67,7 +68,7 @@ namespace WebApp.Controllers
         }
 
         // GET: Hotels/Edit/5
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleConstants.Admin)]
         public async Task<IActionResult> Edit(Guid? id)
         {
             if (id == null) return NotFound();
@@ -82,7 +83,7 @@ namespace WebApp.Controllers
         // POST: Hotels/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleConstants.Admin)]
         public async Task<IActionResult> Edit(Guid id, App.DTO.Public.v1.Hotel hotel)
         {
             if (id != hotel.Id) return NotFound();
@@ -113,7 +114,7 @@ namespace WebApp.Controllers
         }
 
         // GET: Hotels/Delete/5
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleConstants.Admin)]
         public async Task<IActionResult> Delete(Guid? id)
         {
             if (id == null) return NotFound();
@@ -128,7 +129,7 @@ namespace WebApp.Controllers
         // POST: Hotels/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = RoleConstants.Admin)]
         public async Task<IActionResult> DeleteConfirmed(Guid id)
         {
             var hotel = await _bll.HotelService.FindAsync(id);

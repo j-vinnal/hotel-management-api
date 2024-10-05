@@ -62,5 +62,14 @@ public class BookingRepository : BaseEntityRepository<Booking, App.DTO.DAL.Booki
 
         return await query.FirstOrDefaultAsync();
     }
-    
+
+    public async Task<bool> IsRoomBookedAsync(Guid roomId, DateTime startDate, DateTime endDate)
+    {
+        return await RepositoryDbSet
+            .AnyAsync(b => b.RoomId == roomId && 
+                           !b.IsCancelled && 
+                           ((b.StartDate <= startDate && b.EndDate > startDate) || 
+                            (b.StartDate < endDate && b.EndDate >= endDate) || 
+                            (b.StartDate >= startDate && b.EndDate <= endDate)));
+    }
 }
