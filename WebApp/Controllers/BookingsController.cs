@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WebApp.ViewModels;
 using Base.Helpers;
+using WebApp.Helpers;
 
 namespace WebApp.Controllers
 {
@@ -164,10 +165,11 @@ namespace WebApp.Controllers
                 {
                     var entityDal = _mapper.Map(booking)!;
 
+                    /*
                     // Set the time component to the current time
                     entityDal.StartDate = entityDal.StartDate.Date + DateTime.Now.TimeOfDay;
                     entityDal.EndDate = entityDal.EndDate.Date + DateTime.Now.TimeOfDay;
-
+*/
                     _bll.BookingService.Update(entityDal);
                     await _bll.SaveChangesAsync();
                 }
@@ -229,25 +231,30 @@ namespace WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(Guid id)
         {
+            App.DTO.BLL.Booking? booking = await _bll.BookingService.FindAsync(id);
 
-            App.DTO.BLL.Booking? booking;
+            if (booking == null)
+            {
+                return NotFound();
+            }
 
             if (User.IsInRole("Admin"))
             {
                 // Admin can delete any booking
-                booking = await _bll.BookingService.FindWithDetailsAsync(id);
+                _bll.BookingService.Remove(booking);
             }
             else
             {
-                // Non-admin users can only delete their own bookings
-                var userId = Guid.Parse(_userManager.GetUserId(User));
-                booking = await _bll.BookingService.FindWithDetailsAsync(id, userId);
-            }
-
-            if (booking != null)
-            {
-                _bll.BookingService.Remove(booking);
-
+                // Use CanCancelBooking to determine if the user can cancel the booking
+                if (CanCancelBooking(booking))
+                {
+                    booking.IsCancelled = true;
+                    _bll.BookingService.Update(booking);
+                }
+                else
+                {
+                    return Forbid();
+                }
             }
 
             await _bll.SaveChangesAsync();
@@ -258,11 +265,17 @@ namespace WebApp.Controllers
         {
             return _bll.BookingService.Exists(id);
         }
-
-        public async Task<IActionResult> GetAvailableRooms(DateTime startDate, DateTime endDate)
+        
+        private bool CanCancelBooking(App.DTO.BLL.Booking booking)
         {
-            var availableRooms = await _bll.RoomService.GetAvailableRoomsAsync(startDate, endDate);
-            return Json(availableRooms.Select(r => new { r.Id, r.RoomNumber }));
+
+            if (User.IsInRole("Admin"))
+            {
+                return true;
+            }
+
+            var userId = Guid.Parse(_userManager.GetUserId(User));
+            return booking.QuestId == userId && (booking.StartDate - DateTime.UtcNow).TotalDays > BookingConstants.CancellationDaysLimit;
         }
     }
 }

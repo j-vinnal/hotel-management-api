@@ -3,7 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Helpers;
+namespace Base.Helpers;
 
 public static class IdentityHelpers
 {
