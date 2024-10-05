@@ -1,110 +1,98 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using App.DAL.EF;
-using App.Domain;
+using Microsoft.AspNetCore.Authorization;
+using AutoMapper;
+using App.Contracts.DAL;
+using App.Public;
 
 namespace WebApp.Controllers
 {
     public class RoomsController : Controller
     {
-        private readonly AppDbContext _context;
+        private readonly IAppUnitOfWork _uow;
+        private readonly BllPublicMapper<App.DTO.DAL.Room, App.DTO.Public.v1.Room> _mapper;
 
-        public RoomsController(AppDbContext context)
+        public RoomsController(IAppUnitOfWork uow, IMapper autoMapper)
         {
-            _context = context;
+            _uow = uow;
+            _mapper = new BllPublicMapper<App.DTO.DAL.Room, App.DTO.Public.v1.Room>(autoMapper);
         }
-
+        
         // GET: Rooms
         public async Task<IActionResult> Index()
         {
-            var appDbContext = _context.Rooms.Include(r => r.Hotel);
-            return View(await appDbContext.ToListAsync());
+            var rooms = await _uow.RoomRepository.GetAllSortedAsync();
+            var roomDtos = rooms.Select(r => _mapper.Map(r)).ToList();
+            return View(roomDtos);
         }
 
         // GET: Rooms/Details/5
         public async Task<IActionResult> Details(Guid? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
-            var room = await _context.Rooms
-                .Include(r => r.Hotel)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (room == null)
-            {
-                return NotFound();
-            }
+            var room = await _uow.RoomRepository.FindWithDetailsAsync(id.Value);
+            if (room == null) return NotFound();
 
-            return View(room);
+            var roomDto = _mapper.Map(room);
+            return View(roomDto);
         }
 
         // GET: Rooms/Create
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
-            ViewData["HotelId"] = new SelectList(_context.Hotels, "Id", "Address");
+            ViewData["HotelId"] = new SelectList(_uow.HotelRepository.GetAll(), "Id", "Name");
             return View();
         }
 
         // POST: Rooms/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("RoomNumber,BedCount,Price,HotelId,Id")] Room room)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create(App.DTO.Public.v1.Room room)
         {
             if (ModelState.IsValid)
             {
-                room.Id = Guid.NewGuid();
-                _context.Add(room);
-                await _context.SaveChangesAsync();
+                var entityDal = _mapper.Map(room)!;
+                _uow.RoomRepository.Add(entityDal);
+                await _uow.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["HotelId"] = new SelectList(_context.Hotels, "Id", "Address", room.HotelId);
+            ViewData["HotelId"] = new SelectList(_uow.HotelRepository.GetAll(), "Id", "Name", room.HotelId);
             return View(room);
         }
 
         // GET: Rooms/Edit/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(Guid? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
-            var room = await _context.Rooms.FindAsync(id);
-            if (room == null)
-            {
-                return NotFound();
-            }
-            ViewData["HotelId"] = new SelectList(_context.Hotels, "Id", "Address", room.HotelId);
-            return View(room);
+            var room = await _uow.RoomRepository.FindAsync(id.Value);
+            if (room == null) return NotFound();
+
+            var roomDto = _mapper.Map(room)!;
+            ViewData["HotelId"] = new SelectList(_uow.HotelRepository.GetAll(), "Id", "Name", roomDto.HotelId);
+            return View(roomDto);
         }
 
         // POST: Rooms/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, [Bind("RoomNumber,BedCount,Price,HotelId,Id")] Room room)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Edit(Guid id, App.DTO.Public.v1.Room room)
         {
-            if (id != room.Id)
-            {
-                return NotFound();
-            }
+            if (id != room.Id) return NotFound();
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Update(room);
-                    await _context.SaveChangesAsync();
+                    var entityDal = _mapper.Map(room)!;
+                    _uow.RoomRepository.Update(entityDal);
+                    await _uow.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -119,47 +107,41 @@ namespace WebApp.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["HotelId"] = new SelectList(_context.Hotels, "Id", "Address", room.HotelId);
+            ViewData["HotelId"] = new SelectList(_uow.HotelRepository.GetAll(), "Id", "Name", room.HotelId);
             return View(room);
         }
 
         // GET: Rooms/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(Guid? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
-            var room = await _context.Rooms
-                .Include(r => r.Hotel)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (room == null)
-            {
-                return NotFound();
-            }
+            var room = await _uow.RoomRepository.FindWithDetailsAsync(id.Value);
+            if (room == null) return NotFound();
 
-            return View(room);
+            var roomDto = _mapper.Map(room);
+            return View(roomDto);
         }
 
         // POST: Rooms/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(Guid id)
         {
-            var room = await _context.Rooms.FindAsync(id);
+            var room = await _uow.RoomRepository.FindWithDetailsAsync(id);
             if (room != null)
             {
-                _context.Rooms.Remove(room);
+                _uow.RoomRepository.Remove(room);
+                await _uow.SaveChangesAsync();
             }
-
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
         private bool RoomExists(Guid id)
         {
-            return _context.Rooms.Any(e => e.Id == id);
+            return _uow.RoomRepository.Exists(id);
         }
     }
 }

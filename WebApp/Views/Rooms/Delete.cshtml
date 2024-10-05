@@ -1,4 +1,4 @@
-@model App.Domain.Room
+@model App.DTO.Public.v1.Room
 
 @{
     ViewData["Title"] = "Delete";
@@ -30,10 +30,10 @@
             @Html.DisplayFor(model => model.Price)
         </dd>
         <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Hotel)
+            @Html.DisplayNameFor(model => model.HotelName)
         </dt>
         <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Hotel!.Address)
+            @Html.DisplayFor(model => model.HotelName)
         </dd>
     </dl>
     

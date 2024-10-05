@@ -1,8 +1,11 @@
-@model BookingViewModel
+@using System.Security.Claims
+@model WebApp.ViewModels.BookingViewModel
+
 
 
 @{
     ViewData["Title"] = "Create";
+    var isAdmin = User.IsInRole("Admin");
 }
 
 <h1>Create</h1>
@@ -18,6 +21,19 @@
                 <select asp-for="Booking.RoomId" class="form-control" asp-items="Model.RoomSelectList"></select>
                 <span asp-validation-for="Booking.RoomId" class="text-danger"></span>
             </div>
+
+                       @if (isAdmin)
+            {
+                <div class="form-group">
+                    <label asp-for="Booking.QuestId" class="control-label"></label>
+                    <select asp-for="Booking.QuestId" class="form-control" asp-items="ViewBag.AppUserId"></select>
+                    <span asp-validation-for="Booking.QuestId" class="text-danger"></span>
+                </div>
+            }
+            else
+            {
+                <input type="hidden" asp-for="Booking.QuestId" value="@User.FindFirstValue(ClaimTypes.NameIdentifier)" />
+            }
 
             <div class="form-group">
                 <label asp-for="Booking.StartDate" class="control-label"></label>
@@ -44,3 +60,8 @@
 <div>
     <a asp-action="Index">Back to List</a>
 </div>
+
+@section Scripts {
+@{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+

@@ -1,4 +1,4 @@
-@model IEnumerable<App.Domain.Room>
+@model IEnumerable<App.DTO.Public.v1.Room>
 
 @{
     ViewData["Title"] = "Index";
@@ -22,7 +22,7 @@
                 @Html.DisplayNameFor(model => model.Price)
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.Hotel)
+                @Html.DisplayNameFor(model => model.HotelName)
             </th>
             <th></th>
         </tr>
@@ -40,7 +40,7 @@
                 @Html.DisplayFor(modelItem => item.Price)
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.Hotel!.Address)
+                @Html.DisplayFor(modelItem => item.HotelName)
             </td>
             <td>
                 <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |

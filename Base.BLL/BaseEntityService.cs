@@ -9,10 +9,10 @@ public class
     BaseEntityService<TBllEntity, TDalEntity, TRepository, Guid>, IEntityService<TBllEntity>
     where TBllEntity : class, IEntityId
     where TDalEntity : class, IEntityId
-    where TRepository : IBaseRepository<TDalEntity>
+    where TRepository : IBaseEntityRepository<TDalEntity>
 
 {
-    public BaseEntityService(TRepository repository, IMapper<TDalEntity, TBllEntity> mapper) : base(repository, mapper)
+    public BaseEntityService(TRepository repository, IEntityMapper<TDalEntity, TBllEntity> entityMapper) : base(repository, entityMapper)
     {
     }
 }
@@ -20,54 +20,54 @@ public class
 public class BaseEntityService<TBllEntity, TDalEntity, TRepository, TKey> : IEntityService<TBllEntity, TKey>
     where TBllEntity : class, IEntityId<TKey>
     where TDalEntity : class, IEntityId<TKey>
-    where TRepository : IBaseRepository<TDalEntity, TKey>
+    where TRepository : IBaseEntityRepository<TDalEntity, TKey>
     where TKey : struct, IEquatable<TKey>
 
 {
-    protected readonly IMapper<TDalEntity, TBllEntity> Mapper;
+    protected readonly IEntityMapper<TDalEntity, TBllEntity> EntityMapper;
     protected readonly TRepository Repository;
 
-    public BaseEntityService(TRepository repository, IMapper<TDalEntity, TBllEntity> mapper)
+    public BaseEntityService(TRepository repository, IEntityMapper<TDalEntity, TBllEntity> entityMapper)
     {
         Repository = repository;
-        Mapper = mapper;
+        EntityMapper = entityMapper;
     }
 
 
     public virtual async Task<TBllEntity?> FindAsync(TKey id, TKey? userId = default, bool noTracking = true)
     {
-        return Mapper.Map(await Repository.FindAsync(id, userId, noTracking));
+        return EntityMapper.Map(await Repository.FindAsync(id, userId, noTracking));
     }
 
     public virtual IEnumerable<TBllEntity> GetAll(TKey userId = default, bool noTracking = true)
     {
-        return Repository.GetAll(userId, noTracking).Select(e => Mapper.Map(e))!;
+        return Repository.GetAll(userId, noTracking).Select(e => EntityMapper.Map(e))!;
     }
 
 
     public virtual async Task<IEnumerable<TBllEntity>> GetAllAsync(TKey userId = default, bool noTracking = true)
     {
-        return (await Repository.GetAllAsync(userId, noTracking)).Select(e => Mapper.Map(e))!;
+        return (await Repository.GetAllAsync(userId, noTracking)).Select(e => EntityMapper.Map(e))!;
     }
 
     public virtual TBllEntity Add(TBllEntity entity)
     {
-        return Mapper.Map(Repository.Add(Mapper.Map(entity)!))!;
+        return EntityMapper.Map(Repository.Add(EntityMapper.Map(entity)!))!;
     }
 
     public virtual TBllEntity Update(TBllEntity entity)
     {
-        return Mapper.Map(Repository.Update(Mapper.Map(entity)!))!;
+        return EntityMapper.Map(Repository.Update(EntityMapper.Map(entity)!))!;
     }
 
     public virtual int Remove(TBllEntity entity, TKey? userId = default, bool noTracking = true)
     {
-        return Repository.Remove(Mapper.Map(entity)!, userId);
+        return Repository.Remove(EntityMapper.Map(entity)!, userId);
     }
 
     public virtual async Task<int?> RemoveAsync(TBllEntity entity, TKey? userId = default, bool noTracking = true)
     {
-        return await Repository.RemoveAsync(Mapper.Map(entity)!, userId);
+        return await Repository.RemoveAsync(EntityMapper.Map(entity)!, userId);
     }
 
     public virtual int Remove(TKey id, TKey? userId = default, bool noTracking = true)

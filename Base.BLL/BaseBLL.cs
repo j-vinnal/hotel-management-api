@@ -4,7 +4,7 @@ using Base.Contracts.DAL;
 namespace Base.BLL;
 
 public abstract class BaseBLL<TUOW> : IBaseBLL
-    where TUOW : IBaseUOW
+    where TUOW : IUnitOfWork
 {
     protected readonly TUOW Uow;
 

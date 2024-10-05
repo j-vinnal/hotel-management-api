@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Base.DAL.EF;
 
-public abstract class BaseUnitOfWork<TDbContext> : IBaseUOW
+public abstract class BaseUnitOfWork<TDbContext> : IUnitOfWork
     where TDbContext : DbContext
 {
     protected readonly TDbContext UowDbContext;
@@ -12,8 +12,7 @@ public abstract class BaseUnitOfWork<TDbContext> : IBaseUOW
     {
         UowDbContext = uowDbContext;
     }
-
-
+    
     public virtual async Task<int> SaveChangesAsync()
     {
         return await UowDbContext.SaveChangesAsync();

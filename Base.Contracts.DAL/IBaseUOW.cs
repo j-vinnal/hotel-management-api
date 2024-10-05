@@ -1,6 +1,6 @@
 ﻿namespace Base.Contracts.DAL;
 
-public interface IBaseUOW
+public interface IUnitOfWork
 {
     Task<int> SaveChangesAsync();
 }

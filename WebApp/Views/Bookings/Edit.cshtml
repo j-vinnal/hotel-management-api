@@ -1,7 +1,10 @@
-@model App.Domain.Booking
+@using System.Security.Claims
+
+@model App.DTO.Public.v1.Booking
 
 @{
     ViewData["Title"] = "Edit";
+    var isAdmin = User.IsInRole("Admin");
 }
 
 <h1>Edit</h1>
@@ -13,15 +16,24 @@
         <form asp-action="Edit">
             <div asp-validation-summary="All" class="text-danger"></div>
             <div class="form-group">
-                <label asp-for="Room!.RoomNumber" class="control-label"></label>
-                <select asp-for="Room!.RoomNumber" class="form-control" asp-items="ViewBag.RoomId"></select>
-                <span asp-validation-for="Room!.RoomNumber" class="text-danger"></span>
+                <label asp-for="RoomId" class="control-label"></label>
+                <select asp-for="RoomId" class="form-control" asp-items="ViewBag.RoomId"></select>
+                <span asp-validation-for="RoomId" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="AppUserId" class="control-label"></label>
-                <select asp-for="AppUserId" class="form-control" asp-items="ViewBag.AppUserId"></select>
-                <span asp-validation-for="AppUserId" class="text-danger"></span>
-            </div>
+
+            @if (isAdmin)
+            {
+                <div class="form-group">
+                    <label asp-for="QuestId" class="control-label"></label>
+                    <select asp-for="QuestId" class="form-control" asp-items="ViewBag.AppUserId"></select>
+                    <span asp-validation-for="QuestId" class="text-danger"></span>
+                </div>
+            }
+            else
+            {
+                <input type="hidden" asp-for="QuestId" value="@User.FindFirstValue(ClaimTypes.NameIdentifier)" />
+            }
+
             <div class="form-group">
                 <label asp-for="StartDate" class="control-label"></label>
                 <input asp-for="StartDate" class="form-control" type="date" />
