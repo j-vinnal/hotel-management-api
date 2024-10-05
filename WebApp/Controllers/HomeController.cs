@@ -33,7 +33,7 @@ public class HomeController : Controller
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
-    
+
     /// <summary>
     /// Sets the language for the application.
     /// </summary>
@@ -54,6 +54,6 @@ public class HomeController : Controller
         );
         return Redirect(returnUrl);
     }
-    
-    
+
+
 }

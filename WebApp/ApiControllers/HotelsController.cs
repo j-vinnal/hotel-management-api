@@ -1,15 +1,19 @@
+using App.Contracts.BLL;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using App.DAL.EF;
-using App.Domain;
+using App.Domain.Identity;
+using App.Public;
 using Asp.Versioning;
+using AutoMapper;
+using Base.Helpers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 
 namespace WebApp.ApiControllers
 {
     /// <summary>
-    ///     ApiController for managing hotels.
+    ///     API Controller for managing hotels.
     /// </summary>
     [ApiController]
     [ApiVersion("1.0")]
@@ -17,53 +21,80 @@ namespace WebApp.ApiControllers
     [Route("api/v{version:apiVersion}/[controller]")]
     public class HotelsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IAppBLL _bll;
+        private readonly UserManager<AppUser> _userManager;
+        private readonly BllPublicMapper<App.DTO.BLL.Hotel, App.DTO.Public.v1.Hotel> _mapper;
 
-        public HotelsController(AppDbContext context)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HotelsController"/> class.
+        /// </summary>
+        /// <param name="bll">The business logic layer interface.</param>
+        /// <param name="userManager">The user manager for handling user-related operations.</param>
+        /// <param name="autoMapper">The AutoMapper instance for mapping between models.</param>
+        public HotelsController(IAppBLL bll, UserManager<AppUser> userManager, IMapper autoMapper)
         {
-            _context = context;
+            _bll = bll;
+            _userManager = userManager;
+            _mapper = new BllPublicMapper<App.DTO.BLL.Hotel, App.DTO.Public.v1.Hotel>(autoMapper);
         }
 
-        // GET: api/Hotels
+        /// <summary>
+        /// Gets all hotels.
+        /// </summary>
+        /// <returns>A list of hotels.</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Hotel>>> GetHotels()
+        public async Task<ActionResult<IEnumerable<App.DTO.Public.v1.Hotel>>> GetHotels()
         {
-            return await _context.Hotels.ToListAsync();
+            var hotels = await _bll.HotelService.GetAllAsync();
+            var hotelDtos = hotels.Select(h => _mapper.Map(h)).ToList();
+
+            return Ok(hotelDtos);
         }
 
-        // GET: api/Hotels/5
+        /// <summary>
+        /// Gets a specific hotel by ID.
+        /// </summary>
+        /// <param name="id">The ID of the hotel.</param>
+        /// <returns>The hotel with the specified ID.</returns>
         [HttpGet("{id}")]
-        public async Task<ActionResult<Hotel>> GetHotel(Guid id)
+        public async Task<ActionResult<App.DTO.Public.v1.Hotel>> GetHotel(Guid id)
         {
-            var hotel = await _context.Hotels.FindAsync(id);
+            var hotel = await _bll.HotelService.FindAsync(id);
 
             if (hotel == null)
             {
                 return NotFound();
             }
 
-            return hotel;
+            return Ok(_mapper.Map(hotel));
         }
 
-        // PUT: api/Hotels/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        /// <summary>
+        /// Updates a specific hotel.
+        /// </summary>
+        /// <param name="id">The ID of the hotel to update.</param>
+        /// <param name="hotelDto">The updated hotel data.</param>
+        /// <returns>No content if successful.</returns>
+        [Authorize(Roles = RoleConstants.Admin)]
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutHotel(Guid id, Hotel hotel)
+        public async Task<IActionResult> PutHotel(Guid id, App.DTO.Public.v1.Hotel hotelDto)
         {
-            if (id != hotel.Id)
+            if (id != hotelDto.Id)
             {
                 return BadRequest();
             }
 
-            _context.Entry(hotel).State = EntityState.Modified;
+            var hotel = _mapper.Map(hotelDto)!;
+            hotel.AppUserId = Guid.Parse(_userManager.GetUserId(User));
+            _bll.HotelService.Update(hotel);
 
             try
             {
-                await _context.SaveChangesAsync();
+                await _bll.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!HotelExists(id))
+                if (!await HotelExists(id))
                 {
                     return NotFound();
                 }
@@ -76,36 +107,52 @@ namespace WebApp.ApiControllers
             return NoContent();
         }
 
-        // POST: api/Hotels
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        /// <summary>
+        /// Creates a new hotel.
+        /// </summary>
+        /// <param name="hotelDto">The hotel data to create.</param>
+        /// <returns>The created hotel.</returns>
+        [Authorize(Roles = RoleConstants.Admin)]
         [HttpPost]
-        public async Task<ActionResult<Hotel>> PostHotel(Hotel hotel)
+        public async Task<ActionResult<App.DTO.Public.v1.Hotel>> PostHotel(App.DTO.Public.v1.Hotel hotelDto)
         {
-            _context.Hotels.Add(hotel);
-            await _context.SaveChangesAsync();
+            var hotel = _mapper.Map(hotelDto)!;
+            hotel.AppUserId = Guid.Parse(_userManager.GetUserId(User));
+            _bll.HotelService.Add(hotel);
+            await _bll.SaveChangesAsync();
 
-            return CreatedAtAction("GetHotel", new { id = hotel.Id }, hotel);
+            return CreatedAtAction("GetHotel", new { id = hotel.Id }, _mapper.Map(hotel));
         }
 
-        // DELETE: api/Hotels/5
+        /// <summary>
+        /// Deletes a specific hotel.
+        /// </summary>
+        /// <param name="id">The ID of the hotel to delete.</param>
+        /// <returns>No content if successful.</returns>
+        [Authorize(Roles = RoleConstants.Admin)]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteHotel(Guid id)
         {
-            var hotel = await _context.Hotels.FindAsync(id);
+            var hotel = await _bll.HotelService.FindAsync(id);
             if (hotel == null)
             {
                 return NotFound();
             }
 
-            _context.Hotels.Remove(hotel);
-            await _context.SaveChangesAsync();
+            _bll.HotelService.Remove(hotel);
+            await _bll.SaveChangesAsync();
 
             return NoContent();
         }
 
-        private bool HotelExists(Guid id)
+        /// <summary>
+        /// Checks if a hotel exists.
+        /// </summary>
+        /// <param name="id">The ID of the hotel.</param>
+        /// <returns>True if the hotel exists, otherwise false.</returns>
+        private async Task<bool> HotelExists(Guid id)
         {
-            return _context.Hotels.Any(e => e.Id == id);
+            return await _bll.HotelService.ExistsAsync(id);
         }
     }
 }

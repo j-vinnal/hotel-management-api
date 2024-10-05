@@ -80,7 +80,7 @@ namespace WebApp.Controllers
                 var users = await _userManager.Users.ToListAsync();
                 ViewBag.AppUserId = new SelectList(users, "Id", "Email");
             }
-            
+
             var start = startDate ?? DateTime.UtcNow;
 
             var end = endDate ?? DateTime.UtcNow.AddDays(1);
@@ -90,8 +90,8 @@ namespace WebApp.Controllers
                 RoomSelectList = new SelectList(await _bll.RoomService.GetAvailableRoomsAsync(start, end), "Id", "RoomNumber"),
                 Booking = new App.DTO.Public.v1.Booking
                 {
-                    StartDate = start, 
-                    EndDate = end  
+                    StartDate = start,
+                    EndDate = end
                 }
             };
 
@@ -249,7 +249,7 @@ namespace WebApp.Controllers
             }
             else
             {
-            
+
                 if (CanCancelBooking(booking))
                 {
                     booking.IsCancelled = true;
@@ -269,7 +269,7 @@ namespace WebApp.Controllers
         {
             return _bll.BookingService.Exists(id);
         }
-        
+
         private bool CanCancelBooking(App.DTO.BLL.Booking booking)
         {
 

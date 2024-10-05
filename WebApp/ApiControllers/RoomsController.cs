@@ -1,15 +1,18 @@
+using App.Contracts.BLL;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using App.DAL.EF;
-using App.Domain;
+using App.Public;
 using Asp.Versioning;
+using AutoMapper;
+using Base.Helpers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+
 
 namespace WebApp.ApiControllers
 {
     /// <summary>
-    ///     ApiController for managing rooms.
+    ///     API Controller for managing rooms.
     /// </summary>
     [ApiController]
     [ApiVersion("1.0")]
@@ -17,53 +20,76 @@ namespace WebApp.ApiControllers
     [Route("api/v{version:apiVersion}/[controller]")]
     public class RoomsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IAppBLL _bll;
+        private readonly BllPublicMapper<App.DTO.BLL.Room, App.DTO.Public.v1.Room> _mapper;
 
-        public RoomsController(AppDbContext context)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RoomsController"/> class.
+        /// </summary>
+        /// <param name="bll">The business logic layer interface.</param>
+        /// <param name="autoMapper">The AutoMapper instance for mapping between models.</param>
+        public RoomsController(IAppBLL bll, IMapper autoMapper)
         {
-            _context = context;
+            _bll = bll;
+            _mapper = new BllPublicMapper<App.DTO.BLL.Room, App.DTO.Public.v1.Room>(autoMapper);
         }
 
-        // GET: api/Rooms
+        /// <summary>
+        /// Gets all rooms.
+        /// </summary>
+        /// <returns>A list of rooms.</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Room>>> GetRooms()
+        public async Task<ActionResult<IEnumerable<App.DTO.Public.v1.Room>>> GetRooms()
         {
-            return await _context.Rooms.ToListAsync();
+            var rooms = await _bll.RoomService.GetAllAsync();
+            var roomDtos = rooms.Select(r => _mapper.Map(r)).ToList();
+
+            return Ok(roomDtos);
         }
 
-        // GET: api/Rooms/5
+        /// <summary>
+        /// Gets a specific room by ID.
+        /// </summary>
+        /// <param name="id">The ID of the room.</param>
+        /// <returns>The room with the specified ID.</returns>
         [HttpGet("{id}")]
-        public async Task<ActionResult<Room>> GetRoom(Guid id)
+        public async Task<ActionResult<App.DTO.Public.v1.Room>> GetRoom(Guid id)
         {
-            var room = await _context.Rooms.FindAsync(id);
+            var room = await _bll.RoomService.FindAsync(id);
 
             if (room == null)
             {
                 return NotFound();
             }
 
-            return room;
+            return Ok(_mapper.Map(room));
         }
 
-        // PUT: api/Rooms/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        /// <summary>
+        /// Updates a specific room.
+        /// </summary>
+        /// <param name="id">The ID of the room to update.</param>
+        /// <param name="roomDto">The updated room data.</param>
+        /// <returns>No content if successful.</returns>
+        [Authorize(Roles = RoleConstants.Admin)]
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutRoom(Guid id, Room room)
+        public async Task<IActionResult> PutRoom(Guid id, App.DTO.Public.v1.Room roomDto)
         {
-            if (id != room.Id)
+            if (id != roomDto.Id)
             {
                 return BadRequest();
             }
 
-            _context.Entry(room).State = EntityState.Modified;
+            var room = _mapper.Map(roomDto)!;
+            _bll.RoomService.Update(room);
 
             try
             {
-                await _context.SaveChangesAsync();
+                await _bll.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!RoomExists(id))
+                if (!await RoomExists(id))
                 {
                     return NotFound();
                 }
@@ -76,36 +102,51 @@ namespace WebApp.ApiControllers
             return NoContent();
         }
 
-        // POST: api/Rooms
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        /// <summary>
+        /// Creates a new room.
+        /// </summary>
+        /// <param name="roomDto">The room data to create.</param>
+        /// <returns>The created room.</returns>
+        [Authorize(Roles = RoleConstants.Admin)]
         [HttpPost]
-        public async Task<ActionResult<Room>> PostRoom(Room room)
+        public async Task<ActionResult<App.DTO.Public.v1.Room>> PostRoom(App.DTO.Public.v1.Room roomDto)
         {
-            _context.Rooms.Add(room);
-            await _context.SaveChangesAsync();
+            var room = _mapper.Map(roomDto)!;
+            _bll.RoomService.Add(room);
+            await _bll.SaveChangesAsync();
 
-            return CreatedAtAction("GetRoom", new { id = room.Id }, room);
+            return CreatedAtAction("GetRoom", new { id = room.Id }, _mapper.Map(room));
         }
 
-        // DELETE: api/Rooms/5
+        /// <summary>
+        /// Deletes a specific room.
+        /// </summary>
+        /// <param name="id">The ID of the room to delete.</param>
+        /// <returns>No content if successful.</returns>
+        [Authorize(Roles = RoleConstants.Admin)]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteRoom(Guid id)
         {
-            var room = await _context.Rooms.FindAsync(id);
+            var room = await _bll.RoomService.FindAsync(id);
             if (room == null)
             {
                 return NotFound();
             }
 
-            _context.Rooms.Remove(room);
-            await _context.SaveChangesAsync();
+            _bll.RoomService.Remove(room);
+            await _bll.SaveChangesAsync();
 
             return NoContent();
         }
 
-        private bool RoomExists(Guid id)
+        /// <summary>
+        /// Checks if a room exists.
+        /// </summary>
+        /// <param name="id">The ID of the room.</param>
+        /// <returns>True if the room exists, otherwise false.</returns>
+        private async Task<bool> RoomExists(Guid id)
         {
-            return _context.Rooms.Any(e => e.Id == id);
+            return await _bll.RoomService.ExistsAsync(id);
         }
     }
 }
