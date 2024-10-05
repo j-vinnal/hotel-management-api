@@ -1,6 +1,6 @@
+using App.Contracts.BLL;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using App.Contracts.DAL;
 using App.Domain.Identity;
 using App.Public;
 using AutoMapper;
@@ -13,32 +13,32 @@ namespace WebApp.Controllers
 {
     public class BookingsController : Controller
     {
-        private readonly IAppUnitOfWork _uow;
+        private readonly IAppBLL _bll;
         private readonly UserManager<AppUser> _userManager;
-        private readonly BllPublicMapper<App.DTO.DAL.Booking, App.DTO.Public.v1.Booking> _mapper;
+        private readonly BllPublicMapper<App.DTO.BLL.Booking, App.DTO.Public.v1.Booking> _mapper;
 
-        public BookingsController(IAppUnitOfWork uow, UserManager<AppUser> userManager, IMapper autoMapper)
+        public BookingsController(IAppBLL bll, UserManager<AppUser> userManager, IMapper autoMapper)
         {
-            _uow = uow;
+            _bll = bll;
             _userManager = userManager;
-            _mapper = new BllPublicMapper<App.DTO.DAL.Booking, App.DTO.Public.v1.Booking>(autoMapper);
+            _mapper = new BllPublicMapper<App.DTO.BLL.Booking, App.DTO.Public.v1.Booking>(autoMapper);
         }
 
         // GET: Bookings
         public async Task<IActionResult> Index()
         {
-            IEnumerable<App.DTO.DAL.Booking> bookings;
+            IEnumerable<App.DTO.BLL.Booking> bookings;
 
             if (User.IsInRole(RoleConstants.Admin))
             {
                 // Fetch all bookings for admin users
-                bookings = await _uow.BookingRepository.GetAllSortedAsync();
+                bookings = await _bll.BookingService.GetAllSortedAsync();
             }
             else
             {
                 // Fetch bookings for the current user
                 var userId = Guid.Parse(_userManager.GetUserId(User));
-                bookings = await _uow.BookingRepository.GetAllSortedAsync(userId);
+                bookings = await _bll.BookingService.GetAllSortedAsync(userId);
             }
 
             var bookingDtos = bookings.Select(b => _mapper.Map(b)).ToList();
@@ -50,18 +50,18 @@ namespace WebApp.Controllers
         {
             if (id == null) return NotFound();
 
-            App.DTO.DAL.Booking? booking;
+            App.DTO.BLL.Booking? booking;
 
             if (User.IsInRole("Admin"))
             {
                 // Admin can view any booking
-                booking = await _uow.BookingRepository.FindWithDetailsAsync(id.Value);
+                booking = await _bll.BookingService.FindWithDetailsAsync(id.Value);
             }
             else
             {
                 // Non-admin users can only view their own bookings
                 var userId = Guid.Parse(_userManager.GetUserId(User));
-                booking = await _uow.BookingRepository.FindWithDetailsAsync(id.Value, userId);
+                booking = await _bll.BookingService.FindWithDetailsAsync(id.Value, userId);
             }
 
             if (booking == null) return NotFound();
@@ -80,7 +80,7 @@ namespace WebApp.Controllers
             }
             var viewModel = new BookingViewModel
             {
-                RoomSelectList = new SelectList(_uow.RoomRepository.GetAll(), "Id", "RoomNumber")
+                RoomSelectList = new SelectList(_bll.RoomService.GetAll(), "Id", "RoomNumber")
             };
             return View(viewModel);
         }
@@ -100,12 +100,12 @@ namespace WebApp.Controllers
                     bookingDto.QuestId = Guid.Parse(_userManager.GetUserId(User));
                 }
 
-                _uow.BookingRepository.Add(bookingDto);
-                await _uow.SaveChangesAsync();
+                _bll.BookingService.Add(bookingDto);
+                await _bll.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
 
-            viewModel.RoomSelectList = new SelectList(_uow.RoomRepository.GetAll(), "Id", "RoomNumber", viewModel.Booking.RoomId);
+            viewModel.RoomSelectList = new SelectList(_bll.RoomService.GetAll(), "Id", "RoomNumber", viewModel.Booking.RoomId);
             return View(viewModel);
         }
 
@@ -113,25 +113,25 @@ namespace WebApp.Controllers
         public async Task<IActionResult> Edit(Guid? id)
         {
             if (id == null) return NotFound();
-            App.DTO.DAL.Booking? booking;
+            App.DTO.BLL.Booking? booking;
 
             if (User.IsInRole("Admin"))
             {
                 // Admin can view any booking
-                booking = await _uow.BookingRepository.FindWithDetailsAsync(id.Value);
+                booking = await _bll.BookingService.FindWithDetailsAsync(id.Value);
             }
             else
             {
                 // Non-admin users can only view their own bookings
                 var userId = Guid.Parse(_userManager.GetUserId(User));
-                booking = await _uow.BookingRepository.FindWithDetailsAsync(id.Value, userId);
+                booking = await _bll.BookingService.FindWithDetailsAsync(id.Value, userId);
             }
 
             if (booking == null) return NotFound();
 
             var bookingDto = _mapper.Map(booking)!;
 
-            ViewData["RoomId"] = new SelectList(_uow.RoomRepository.GetAll(), "Id", "RoomNumber", booking.RoomId);
+            ViewData["RoomId"] = new SelectList(_bll.RoomService.GetAll(), "Id", "RoomNumber", booking.RoomId);
             ViewData["AppUserId"] = new SelectList(await _userManager.Users.ToListAsync(), "Id", "Email", booking.QuestId);
             return View(bookingDto);
         }
@@ -148,8 +148,8 @@ namespace WebApp.Controllers
                 try
                 {
                     var entityDal = _mapper.Map(booking)!;
-                    _uow.BookingRepository.Update(entityDal);
-                    await _uow.SaveChangesAsync();
+                    _bll.BookingService.Update(entityDal);
+                    await _bll.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -166,7 +166,7 @@ namespace WebApp.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            ViewData["RoomId"] = new SelectList(_uow.RoomRepository.GetAll(), "Id", "RoomNumber", booking.RoomId);
+            ViewData["RoomId"] = new SelectList(_bll.RoomService.GetAll(), "Id", "RoomNumber", booking.RoomId);
             return View(booking);
         }
 
@@ -179,18 +179,18 @@ namespace WebApp.Controllers
                 return NotFound();
             }
 
-            App.DTO.DAL.Booking? booking;
+            App.DTO.BLL.Booking? booking;
 
             if (User.IsInRole("Admin"))
             {
                 // Admin can view any booking
-                booking = await _uow.BookingRepository.FindWithDetailsAsync(id.Value);
+                booking = await _bll.BookingService.FindWithDetailsAsync(id.Value);
             }
             else
             {
                 // Non-admin users can only view their own bookings
                 var userId = Guid.Parse(_userManager.GetUserId(User));
-                booking = await _uow.BookingRepository.FindWithDetailsAsync(id.Value, userId);
+                booking = await _bll.BookingService.FindWithDetailsAsync(id.Value, userId);
             }
 
             if (booking == null)
@@ -208,33 +208,33 @@ namespace WebApp.Controllers
         public async Task<IActionResult> DeleteConfirmed(Guid id)
         {
 
-            App.DTO.DAL.Booking? booking;
+            App.DTO.BLL.Booking? booking;
 
             if (User.IsInRole("Admin"))
             {
                 // Admin can delete any booking
-                booking = await _uow.BookingRepository.FindWithDetailsAsync(id);
+                booking = await _bll.BookingService.FindWithDetailsAsync(id);
             }
             else
             {
                 // Non-admin users can only delete their own bookings
                 var userId = Guid.Parse(_userManager.GetUserId(User));
-                booking = await _uow.BookingRepository.FindWithDetailsAsync(id, userId);
+                booking = await _bll.BookingService.FindWithDetailsAsync(id, userId);
             }
 
             if (booking != null)
             {
-                _uow.BookingRepository.Remove(booking);
+                _bll.BookingService.Remove(booking);
 
             }
 
-            await _uow.SaveChangesAsync();
+            await _bll.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
         private bool BookingExists(Guid id)
         {
-            return _uow.BookingRepository.Exists(id);
+            return _bll.BookingService.Exists(id);
         }
     }
 }

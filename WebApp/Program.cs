@@ -1,9 +1,12 @@
+using App.BLL;
+using App.Contracts.BLL;
 using App.Contracts.DAL;
 using App.DAL.EF;
 using App.DAL.EF.Seeding;
 using App.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using AutoMapperProfile = App.DAL.EF.AutoMapperProfile;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,11 +20,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddScoped<IAppUnitOfWork, AppUnitOfWork>();
+builder.Services.AddScoped<IAppBLL, AppBLL>();
 
 
 // reference any class from class library to be scanned for mapper configurations
 builder.Services.AddAutoMapper(
-    typeof(App.DAL.EF.AutoMapperProfile),
+    typeof(App.BLL.AutoMapperProfile),
     typeof(App.Public.AutoMapperProfile),
     typeof(AutoMapperProfile)
 );
