@@ -39,6 +39,7 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <returns>A list of rooms.</returns>
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<App.DTO.Public.v1.Room>>> GetRooms()
         {
             var rooms = await _bll.RoomService.GetAllAsync();

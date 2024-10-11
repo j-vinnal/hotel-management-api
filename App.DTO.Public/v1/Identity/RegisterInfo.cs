@@ -15,4 +15,7 @@ public class RegisterInfo
 
     [StringLength(128, MinimumLength = 1, ErrorMessage = "Incorrect length")]
     public string Lastname { get; set; } = default!;
+    
+    [StringLength(128, MinimumLength = 1, ErrorMessage = "Incorrect length")]
+    public string PersonalCode { get; set; } = default!;
 }

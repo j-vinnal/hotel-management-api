@@ -40,18 +40,20 @@ public static class AppDataInit
         context.Database.EnsureDeleted();
     }
 
-    public static async Task SeedIdentity(UserManager<AppUser> userManager, RoleManager<AppRole> roleManager,
-        ILogger logger)
+    public static async Task SeedIdentity(UserManager<AppUser> userManager, RoleManager<AppRole> roleManager, ILogger logger)
     {
         var adminData = await LoadJsonData<AdminUserData>(Path.Combine(SeedDataPath, "admin.json"));
 
-        // Create admin role
-        if (!await roleManager.RoleExistsAsync(RoleConstants.Admin))
+        // Create roles
+        foreach (var role in RoleConstants.DefaultRoles)
         {
-            var role = new AppRole { Name = RoleConstants.Admin };
-            var result = await roleManager.CreateAsync(role);
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                var appRole = new AppRole { Name = role };
+                var result = await roleManager.CreateAsync(appRole);
 
-            if (!result.Succeeded) throw new Exception($"Failed to create role {RoleConstants.Admin}.");
+                if (!result.Succeeded) throw new Exception($"Failed to create role {role}.");
+            }
         }
 
         // Create admin user
@@ -65,16 +67,18 @@ public static class AppDataInit
                 Email = adminData.UserName,
                 FirstName = adminData.FirstName,
                 LastName = adminData.LastName,
-                PersonalCode =  adminData.PersonalCode
+                PersonalCode = adminData.PersonalCode
             };
             var result = await userManager.CreateAsync(admin, adminData.Password);
-            
+
             if (!result.Succeeded) throw new Exception($"Failed to create user {admin.UserName}.");
 
             var res = await userManager.AddClaimsAsync(admin, new List<Claim>
             {
                 new(ClaimTypes.GivenName, admin.FirstName),
-                new(ClaimTypes.Surname, admin.LastName)
+                new(ClaimTypes.Surname, admin.LastName),
+                new (ClaimTypes.Role, RoleConstants.Guest),
+                new("PersonalCode", admin.PersonalCode)
             });
 
             await userManager.AddToRoleAsync(admin, RoleConstants.Admin);

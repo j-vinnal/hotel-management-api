@@ -1,0 +1,21 @@
+version: '3.9'
+
+services:
+  hotel-db:
+    container_name: hotel-db
+    image: 'postgres:16'
+    restart: on-failure
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=hotel-db
+    logging:
+      options:
+        max-size: 10m
+        max-file: '3'
+    ports:
+      - '5446:5432'
+    volumes:
+      - hotel-db-postgres-volume:/var/lib/postgresql/data
+volumes:
+  hotel-db-postgres-volume:

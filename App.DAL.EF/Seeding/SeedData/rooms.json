@@ -1,32 +1,42 @@
 [
   {
     "RoomNumber": 101,
+    "RoomName": "Deluxe Suite",
     "BedCount": 2,
     "Price": 150.0,
+    "ImageUrl": "https://images.unsplash.com/photo-1611892440504-42a792e24d32?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
     "HotelId": "5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"
   },
   {
     "RoomNumber": 102,
+    "RoomName": "Executive Room",
     "BedCount": 1,
     "Price": 100.0,
+    "ImageUrl": "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
     "HotelId": "5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"
   },
   {
     "RoomNumber": 103,
+    "RoomName": "Family Suite",
     "BedCount": 3,
     "Price": 200.0,
+    "ImageUrl": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
     "HotelId": "5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"
   },
   {
     "RoomNumber": 104,
+    "RoomName": "Standard room",
     "BedCount": 2,
     "Price": 150.0,
+    "ImageUrl": "https://images.unsplash.com/photo-1611892440504-42a792e24d32?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
     "HotelId": "5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"
   },
   {
     "RoomNumber": 105,
+    "RoomName": "Single room",
     "BedCount": 1,
     "Price": 100.0,
+    "ImageUrl": "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
     "HotelId": "5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"
   }
 ]

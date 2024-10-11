@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace App.DAL.EF.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241005200031_First-Db")]
+    [Migration("20241011144406_First-Db")]
     partial class FirstDb
     {
         /// <inheritdoc />
@@ -288,8 +288,15 @@ namespace App.DAL.EF.Migrations
                     b.Property<Guid>("HotelId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("numeric");
+
+                    b.Property<string>("RoomName")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<int>("RoomNumber")
                         .HasColumnType("integer");

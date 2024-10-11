@@ -213,10 +213,12 @@ namespace App.DAL.EF.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    RoomName = table.Column<string>(type: "text", nullable: false),
                     RoomNumber = table.Column<int>(type: "integer", nullable: false),
                     BedCount = table.Column<int>(type: "integer", nullable: false),
                     Price = table.Column<decimal>(type: "numeric", nullable: false),
                     HotelId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ImageUrl = table.Column<string>(type: "text", nullable: true),
                     UpdatedBy = table.Column<string>(type: "text", nullable: true),
                     UpdatedAtDt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<string>(type: "text", nullable: true),

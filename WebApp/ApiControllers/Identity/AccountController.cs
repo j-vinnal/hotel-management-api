@@ -48,8 +48,8 @@ public class AccountController : ControllerBase
     [HttpPost]
     [Produces("application/json")]
     [Consumes("application/json")]
-    [ProducesResponseType<JWTResponse>((int) HttpStatusCode.OK)]
-    [ProducesResponseType<RestApiErrorResponse>((int) HttpStatusCode.BadRequest)]
+    [ProducesResponseType<JWTResponse>((int)HttpStatusCode.OK)]
+    [ProducesResponseType<RestApiErrorResponse>((int)HttpStatusCode.BadRequest)]
     public async Task<ActionResult<JWTResponse>> Register(
         [FromBody]
         RegisterInfo registrationData,
@@ -84,7 +84,8 @@ public class AccountController : ControllerBase
             UserName = registrationData.Email,
             FirstName = registrationData.Firstname,
             LastName = registrationData.Lastname,
-            RefreshTokens = new List<AppRefreshToken>() {refreshToken}
+            PersonalCode = registrationData.PersonalCode,
+            RefreshTokens = new List<AppRefreshToken>() { refreshToken }
         };
         refreshToken.AppUser = appUser;
 
@@ -99,12 +100,12 @@ public class AccountController : ControllerBase
                 }
             );
         }
-        
+
         var addToRoleResult = await _userManager.AddToRoleAsync(appUser, RoleConstants.Guest);
 
         if (!addToRoleResult.Succeeded)
         {
-            
+
             return BadRequest(
                 new RestApiErrorResponse()
                 {
@@ -120,7 +121,8 @@ public class AccountController : ControllerBase
         {
             new(ClaimTypes.GivenName, appUser.FirstName),
             new(ClaimTypes.Surname, appUser.LastName),
-            new (ClaimTypes.Role, RoleConstants.Guest)
+            new (ClaimTypes.Role, RoleConstants.Guest),
+            new("PersonalCode", registrationData.PersonalCode)
         });
 
         if (!result.Succeeded)
@@ -185,7 +187,14 @@ public class AccountController : ControllerBase
             _logger.LogWarning("WebApi login failed, email {} not found", loginData.Email);
             // Brute-force attack mitigation
             await Task.Delay(_rnd.Next(100, 1000));
-            return NotFound("No account found with the provided email address");
+
+            return NotFound(
+           new RestApiErrorResponse()
+           {
+               Status = HttpStatusCode.NotFound,
+               Error = "No account found with the provided email address"
+           }
+       );
         }
 
         // verify password
@@ -195,7 +204,13 @@ public class AccountController : ControllerBase
             _logger.LogWarning("WebApi login failed, password {} for email {} was wrong", loginData.Password,
                 loginData.Email);
             await Task.Delay(_rnd.Next(100, 1000));
-            return NotFound("The password you entered is incorrect");
+            return NotFound(
+                new RestApiErrorResponse()
+                {
+                    Status = HttpStatusCode.NotFound,
+                    Error = "The password you entered is incorrect"
+                }
+            );
         }
 
         var claimsPrincipal = await _signInManager.CreateUserPrincipalAsync(appUser);
@@ -203,20 +218,26 @@ public class AccountController : ControllerBase
         {
             _logger.LogWarning("WebApi login failed, claimsPrincipal null");
             await Task.Delay(_rnd.Next(100, 1000));
-            return NotFound("Failed to generate user session");
+            return NotFound(
+                new RestApiErrorResponse()
+                {
+                    Status = HttpStatusCode.NotFound,
+                    Error = "Failed to generate user session"
+                }
+            );
         }
 
         if (!_context.Database.ProviderName!.Contains("InMemory"))
         {
-            
+
             // Remove expired tokens directly in the database
-            var deletedRows =       
+            var deletedRows =
                 await _context.AppRefreshTokens
                     .Where(t => t.AppUserId == appUser.Id &&
                                 t.ExpirationDt < DateTime.UtcNow &&
                                 (t.PreviousExpirationDt == null || t.PreviousExpirationDt < DateTime.UtcNow))
                     .ExecuteDeleteAsync();
-            
+
             _logger.LogInformation("Deleted {} refresh tokens", deletedRows);
         }
         else
@@ -229,7 +250,7 @@ public class AccountController : ControllerBase
         {
             AppUserId = appUser.Id
         };
-        
+
         _context.AppRefreshTokens.Add(refreshToken);
         await _context.SaveChangesAsync();
 
@@ -263,9 +284,9 @@ public class AccountController : ControllerBase
             ? expiresInSeconds
             : _configuration.GetValue<int>("JWT:expiresInSeconds");
 
-    
+
         JwtSecurityToken? jwt;
-        
+
         // Not verify, but just deserialize, create jwt object
         try
         {
@@ -284,10 +305,10 @@ public class AccountController : ControllerBase
         catch (Exception e)
         {
             return BadRequest(new RestApiErrorResponse()
-                {
-                    Status = HttpStatusCode.BadRequest,
-                    Error = "No token"
-                }
+            {
+                Status = HttpStatusCode.BadRequest,
+                Error = "No token"
+            }
             );
         }
 
@@ -414,7 +435,7 @@ public class AccountController : ControllerBase
                 }
             );
         }
-//!!!
+        //!!!
         if (Guid.TryParse(userIdStr, out var userId))
         {
             return BadRequest("Deserialization error");
@@ -450,6 +471,6 @@ public class AccountController : ControllerBase
 
         var deleteCount = await _context.SaveChangesAsync();
 
-        return Ok(new {TokenDeleteCount = deleteCount});
+        return Ok(new { TokenDeleteCount = deleteCount });
     }
 }

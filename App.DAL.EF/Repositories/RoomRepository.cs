@@ -21,9 +21,11 @@ public class RoomRepository : BaseEntityRepository<Room, DTO.DAL.Room, AppDbCont
             .Select(s => new DTO.DAL.Room
             {
                 Id = s.Id,
+                RoomName = s.RoomName,
                 RoomNumber = s.RoomNumber,
                 BedCount = s.BedCount,
                 Price = s.Price,
+                ImageUrl = s.ImageUrl,
                 HotelName = s.Hotel!.Name,
                 HotelId = s.Hotel.Id
 
@@ -42,9 +44,11 @@ public class RoomRepository : BaseEntityRepository<Room, DTO.DAL.Room, AppDbCont
             .Select(s => new DTO.DAL.Room
             {
                 Id = s.Id,
+                RoomName = s.RoomName,
                 RoomNumber = s.RoomNumber,
                 BedCount = s.BedCount,
                 Price = s.Price,
+                ImageUrl = s.ImageUrl,
                 HotelName = s.Hotel!.Name,
                 HotelId = s.Hotel.Id
 
@@ -73,9 +77,11 @@ public class RoomRepository : BaseEntityRepository<Room, DTO.DAL.Room, AppDbCont
         return await query.Select(r => new DTO.DAL.Room
         {
             Id = r.Id,
+            RoomName = r.RoomName,
             RoomNumber = r.RoomNumber,
             BedCount = r.BedCount,
             Price = r.Price,
+            ImageUrl = r.ImageUrl,
             HotelName = r.Hotel!.Name,
             HotelId = r.Hotel.Id
         }).ToListAsync();

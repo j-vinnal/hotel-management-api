@@ -285,8 +285,15 @@ namespace App.DAL.EF.Migrations
                     b.Property<Guid>("HotelId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("numeric");
+
+                    b.Property<string>("RoomName")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<int>("RoomNumber")
                         .HasColumnType("integer");

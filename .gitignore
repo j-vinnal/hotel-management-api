@@ -456,10 +456,6 @@ Backup of *.doc*
 # Visio autosave temporary files
 *.~vsd*
 
-
-# Docker psw
-docker-compose.yaml
-
 # Ignore content in wwwroot/upload directory
 wwwroot/upload/
 
