@@ -40,11 +40,20 @@ namespace WebApp.ApiControllers
         /// <returns>A list of rooms.</returns>
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<App.DTO.Public.v1.Room>>> GetRooms()
+        public async Task<ActionResult<IEnumerable<App.DTO.Public.v1.Room>>> GetRooms([FromQuery] App.DTO.Public.v1.RoomAvailabilityRequest request)
         {
-            var rooms = await _bll.RoomService.GetAllAsync();
-            var roomDtos = rooms.Select(r => _mapper.Map(r)).ToList();
+            IEnumerable<App.DTO.BLL.Room> rooms;
 
+            if (request.StartDate.HasValue && request.EndDate.HasValue)
+            {
+                rooms = await _bll.RoomService.GetAvailableRoomsAsync(request.StartDate.Value, request.EndDate.Value);
+            }
+            else
+            {
+                rooms = await _bll.RoomService.GetAllAsync();
+            }
+
+            var roomDtos = rooms.Select(r => _mapper.Map(r)).ToList();
             return Ok(roomDtos);
         }
 
