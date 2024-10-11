@@ -18,7 +18,7 @@ dotnet tool update -g dotnet-aspnet-codegenerator
 Run from solution folder
 
 ~~~bash
-dotnet ef migrations --project App.DAL.EF --startup-project WebApp add first-db
+dotnet ef migrations --project App.DAL.EF --startup-project WebApp add First-Db
 ~~~
 ~~~bash
 dotnet ef database   --project App.DAL.EF --startup-project WebApp update
@@ -28,7 +28,7 @@ dotnet ef database   --project App.DAL.EF --startup-project WebApp drop
 ~~~
 
 
-# MVC controllers
+## MVC controllers
 
 These controllers are generated for quick testing of the data model.
 
@@ -49,7 +49,18 @@ dotnet aspnet-codegenerator controller -name BookingsController  -actions -m  Ap
 ~~~
 
 
-#Generate Identity UI
+## Api controllers
+~~~bash
+dotnet aspnet-codegenerator controller -name HotelsController    -m  App.Domain.Hotel       -dc AppDbContext -outDir ApiControllers -api --useAsyncActions -f
+
+dotnet aspnet-codegenerator controller -name RoomsController     -m  App.Domain.Room        -dc AppDbContext -outDir ApiControllers -api --useAsyncActions -f
+
+dotnet aspnet-codegenerator controller -name BookingsController  -m  App.Domain.Booking     -dc AppDbContext -outDir ApiControllers -api --useAsyncActions -f
+~~~
+
+
+
+## Generate Identity UI
 
 ~~~bash
 dotnet aspnet-codegenerator identity -dc AppDbContext --userClass App.Domain.Identity.AppUser -f

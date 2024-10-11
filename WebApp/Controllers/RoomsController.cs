@@ -19,7 +19,7 @@ namespace WebApp.Controllers
             _bll = bll;
             _mapper = new BllPublicMapper<App.DTO.BLL.Room, App.DTO.Public.v1.Room>(autoMapper);
         }
-        
+
         // GET: Rooms
         public async Task<IActionResult> Index()
         {

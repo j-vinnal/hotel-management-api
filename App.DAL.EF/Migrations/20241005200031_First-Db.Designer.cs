@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace App.DAL.EF.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241005133849_first-db")]
-    partial class firstdb
+    [Migration("20241005200031_First-Db")]
+    partial class FirstDb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -62,8 +62,7 @@ namespace App.DAL.EF.Migrations
 
                     b.HasIndex("AppUserId");
 
-                    b.HasIndex("RoomId", "StartDate", "EndDate")
-                        .IsUnique();
+                    b.HasIndex("RoomId");
 
                     b.ToTable("Bookings");
                 });
@@ -429,7 +428,7 @@ namespace App.DAL.EF.Migrations
             modelBuilder.Entity("App.Domain.Identity.AppRefreshToken", b =>
                 {
                     b.HasOne("App.Domain.Identity.AppUser", "AppUser")
-                        .WithMany()
+                        .WithMany("RefreshTokens")
                         .HasForeignKey("AppUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -507,6 +506,8 @@ namespace App.DAL.EF.Migrations
             modelBuilder.Entity("App.Domain.Identity.AppUser", b =>
                 {
                     b.Navigation("Hotel");
+
+                    b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618
         }

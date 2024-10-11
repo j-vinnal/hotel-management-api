@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace App.DAL.EF.Migrations
 {
     /// <inheritdoc />
-    public partial class firstdb : Migration
+    public partial class FirstDb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -319,10 +319,9 @@ namespace App.DAL.EF.Migrations
                 column: "AppUserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Bookings_RoomId_StartDate_EndDate",
+                name: "IX_Bookings_RoomId",
                 table: "Bookings",
-                columns: new[] { "RoomId", "StartDate", "EndDate" },
-                unique: true);
+                column: "RoomId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Hotels_AppUserId",

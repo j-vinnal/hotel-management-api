@@ -18,5 +18,7 @@ public class AppUser : IdentityUser<Guid>, IEntityId
     [MaxLength(64)]
     public string PersonalCode { get; set; } = default!;
     public Hotel? Hotel { get; set; }
+    
+    public ICollection<AppRefreshToken>? RefreshTokens { get; set; }
 
 }
