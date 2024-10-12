@@ -1,4 +1,6 @@
+using System.Net;
 using App.Contracts.BLL;
+using App.DTO.Public.v1;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using App.Public;
@@ -42,11 +44,26 @@ namespace WebApp.ApiControllers
         [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<App.DTO.Public.v1.Room>>> GetRooms([FromQuery] App.DTO.Public.v1.RoomAvailabilityRequest request)
         {
+            if (request.StartDate.HasValue && request.EndDate.HasValue && request.EndDate < request.StartDate)
+            {
+                return BadRequest(
+                    new RestApiErrorResponse()
+                    {
+                        Status = HttpStatusCode.BadRequest,
+                        Error = "End date cannot be earlier than start date."
+                    }
+                );
+            }
+
             IEnumerable<App.DTO.BLL.Room> rooms;
 
-            if (request.StartDate.HasValue && request.EndDate.HasValue)
+            if (request.StartDate.HasValue || request.EndDate.HasValue || request.GuestCount.HasValue)
             {
-                rooms = await _bll.RoomService.GetAvailableRoomsAsync(request.StartDate.Value, request.EndDate.Value);
+                rooms = await _bll.RoomService.GetAvailableRoomsAsync(
+                    request.StartDate ?? DateTime.Today,
+                    request.EndDate ?? DateTime.MaxValue,
+                    request.GuestCount ?? 0
+                );
             }
             else
             {

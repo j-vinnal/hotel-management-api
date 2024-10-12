@@ -73,7 +73,7 @@ namespace WebApp.Controllers
         }
 
         // GET: Bookings/Create
-        public async Task<IActionResult> Create(DateTime? startDate, DateTime? endDate)
+        public async Task<IActionResult> Create(DateTime? startDate, DateTime? endDate, int bedCount)
         {
             if (User.IsInRole(RoleConstants.Admin))
             {
@@ -87,7 +87,7 @@ namespace WebApp.Controllers
 
             var viewModel = new BookingViewModel
             {
-                RoomSelectList = new SelectList(await _bll.RoomService.GetAvailableRoomsAsync(start, end), "Id", "RoomNumber"),
+                RoomSelectList = new SelectList(await _bll.RoomService.GetAvailableRoomsAsync(start, end, bedCount), "Id", "RoomNumber"),
                 Booking = new App.DTO.Public.v1.Booking
                 {
                     StartDate = start,
@@ -117,7 +117,7 @@ namespace WebApp.Controllers
                 if (!canBook)
                 {
                     ModelState.AddModelError("", "The room is already booked for the selected date range.");
-                    viewModel.RoomSelectList = new SelectList(await _bll.RoomService.GetAvailableRoomsAsync(bookingDto.StartDate, bookingDto.EndDate), "Id", "RoomNumber", bookingDto.RoomId);
+                   // viewModel.RoomSelectList = new SelectList(await _bll.RoomService.GetAvailableRoomsAsync(bookingDto.StartDate, bookingDto.EndDate), "Id", "RoomNumber", bookingDto.RoomId);
                     return View(viewModel);
                 }
 
@@ -126,7 +126,7 @@ namespace WebApp.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            viewModel.RoomSelectList = new SelectList(await _bll.RoomService.GetAvailableRoomsAsync(viewModel.Booking.StartDate, viewModel.Booking.EndDate), "Id", "RoomNumber", viewModel.Booking.RoomId);
+          //  viewModel.RoomSelectList = new SelectList(await _bll.RoomService.GetAvailableRoomsAsync(viewModel.Booking.StartDate, viewModel.Booking.EndDate), "Id", "RoomNumber", viewModel.Booking.RoomId);
             return View(viewModel);
         }
 
@@ -154,8 +154,8 @@ namespace WebApp.Controllers
             var bookingDto = _mapper.Map(booking)!;
 
             // Fetch available rooms for the booking's date range
-            var availableRooms = await _bll.RoomService.GetAvailableRoomsAsync(booking.StartDate, booking.EndDate);
-            ViewData["RoomId"] = new SelectList(availableRooms, "Id", "RoomNumber", booking.RoomId);
+          //  var availableRooms = await _bll.RoomService.GetAvailableRoomsAsync(booking.StartDate, booking.EndDate);
+         //   ViewData["RoomId"] = new SelectList(availableRooms, "Id", "RoomNumber", booking.RoomId);
             ViewData["AppUserId"] = new SelectList(await _userManager.Users.ToListAsync(), "Id", "Email", booking.QuestId);
 
             return View(bookingDto);
@@ -193,8 +193,8 @@ namespace WebApp.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var availableRooms = await _bll.RoomService.GetAvailableRoomsAsync(booking.StartDate, booking.EndDate);
-            ViewData["RoomId"] = new SelectList(availableRooms, "Id", "RoomNumber", booking.RoomId);
+         //   var availableRooms = await _bll.RoomService.GetAvailableRoomsAsync(booking.StartDate, booking.EndDate);
+         //   ViewData["RoomId"] = new SelectList(availableRooms, "Id", "RoomNumber", booking.RoomId);
 
             return View(booking);
         }

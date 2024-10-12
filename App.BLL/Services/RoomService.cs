@@ -26,8 +26,8 @@ public class RoomService : BaseEntityService<Room, DTO.DAL.Room, IRoomRepository
         return EntityMapper.Map(await Repository.FindWithDetailsAsync(id));
     }
     
-    public async Task<IEnumerable<Room>> GetAvailableRoomsAsync(DateTime startDate, DateTime endDate, bool noTracking = true)
+    public async Task<IEnumerable<Room>> GetAvailableRoomsAsync(DateTime startDate, DateTime endDate, int guestCount, bool noTracking = true)
     {
-        return (await Repository.GetAvailableRoomsAsync(startDate, endDate, noTracking)).Select(e => EntityMapper.Map(e))!;
+        return (await Repository.GetAvailableRoomsAsync(startDate, endDate, guestCount, noTracking)).Select(e => EntityMapper.Map(e))!;
     }
 }
