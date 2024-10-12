@@ -11,6 +11,5 @@ public class Room : IEntityId
     public int BedCount { get; set; }
     public decimal Price { get; set; }
     public string? ImageUrl { get; set; }
-    public string? HotelName { get; set; }
     public Guid HotelId { get; set; }
 }

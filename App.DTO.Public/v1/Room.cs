@@ -15,6 +15,6 @@ public class Room : IEntityId
     
     public string? ImageUrl { get; set; }
     
-    public string? HotelName { get; set; }
+   // public string? HotelName { get; set; }
     public Guid HotelId { get; set; }
 }

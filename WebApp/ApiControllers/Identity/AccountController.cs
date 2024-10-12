@@ -121,7 +121,6 @@ public class AccountController : ControllerBase
         {
             new(ClaimTypes.GivenName, appUser.FirstName),
             new(ClaimTypes.Surname, appUser.LastName),
-            new (ClaimTypes.Role, RoleConstants.Guest),
             new("PersonalCode", registrationData.PersonalCode)
         });
 
@@ -435,8 +434,8 @@ public class AccountController : ControllerBase
                 }
             );
         }
-        //!!!
-        if (Guid.TryParse(userIdStr, out var userId))
+        
+        if (!Guid.TryParse(userIdStr, out var userId))
         {
             return BadRequest("Deserialization error");
         }

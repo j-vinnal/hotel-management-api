@@ -26,8 +26,7 @@ public class RoomRepository : BaseEntityRepository<Room, DTO.DAL.Room, AppDbCont
                 BedCount = s.BedCount,
                 Price = s.Price,
                 ImageUrl = s.ImageUrl,
-                HotelName = s.Hotel!.Name,
-                HotelId = s.Hotel.Id
+                HotelId = s.Hotel!.Id
 
             });
 
@@ -49,8 +48,7 @@ public class RoomRepository : BaseEntityRepository<Room, DTO.DAL.Room, AppDbCont
                 BedCount = s.BedCount,
                 Price = s.Price,
                 ImageUrl = s.ImageUrl,
-                HotelName = s.Hotel!.Name,
-                HotelId = s.Hotel.Id
+                HotelId = s.Hotel!.Id
 
             });
 
@@ -87,8 +85,7 @@ public class RoomRepository : BaseEntityRepository<Room, DTO.DAL.Room, AppDbCont
             BedCount = r.BedCount,
             Price = r.Price,
             ImageUrl = r.ImageUrl,
-            HotelName = r.Hotel!.Name,
-            HotelId = r.Hotel.Id
+            HotelId = r.Hotel!.Id
         }).ToListAsync();
     }
 

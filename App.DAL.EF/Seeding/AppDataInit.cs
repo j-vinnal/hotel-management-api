@@ -77,7 +77,6 @@ public static class AppDataInit
             {
                 new(ClaimTypes.GivenName, admin.FirstName),
                 new(ClaimTypes.Surname, admin.LastName),
-                new (ClaimTypes.Role, RoleConstants.Guest),
                 new("PersonalCode", admin.PersonalCode)
             });
 
