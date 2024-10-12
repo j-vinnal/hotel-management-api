@@ -14,5 +14,5 @@ public interface IRoomRepositoryCustom<TEntity>
 
     Task<IEnumerable<TEntity>> GetAllSortedAsync(bool noTracking = true);
     Task<TEntity?> FindWithDetailsAsync(Guid id, bool noTracking = true);
-    Task<IEnumerable<TEntity>> GetAvailableRoomsAsync(DateTime startDate, DateTime endDate, int guestCount, bool noTracking = true);
+    Task<IEnumerable<TEntity>> GetAvailableRoomsAsync(DateTime? startDate, DateTime? endDate, int? guestCount, bool noTracking = true);
 }

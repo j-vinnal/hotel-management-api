@@ -37,9 +37,12 @@ namespace WebApp.ApiControllers
         }
 
         /// <summary>
-        /// Gets all rooms.
+        /// Retrieves a list of available rooms based on the specified availability request.
         /// </summary>
-        /// <returns>A list of rooms.</returns>
+        /// <param name="request">The room availability request containing optional start date, end date, and guest count.</param>
+        /// <returns>A list of available rooms that match the criteria specified in the request.</returns>
+        /// <response code="200">Returns the list of available rooms.</response>
+        /// <response code="400">If the end date is earlier than the start date.</response>
         [HttpGet]
         [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<App.DTO.Public.v1.Room>>> GetRooms([FromQuery] App.DTO.Public.v1.RoomAvailabilityRequest request)
@@ -55,20 +58,11 @@ namespace WebApp.ApiControllers
                 );
             }
 
-            IEnumerable<App.DTO.BLL.Room> rooms;
-
-            if (request.StartDate.HasValue || request.EndDate.HasValue || request.GuestCount.HasValue)
-            {
-                rooms = await _bll.RoomService.GetAvailableRoomsAsync(
-                    request.StartDate ?? DateTime.Today,
-                    request.EndDate ?? DateTime.MaxValue,
-                    request.GuestCount ?? 0
-                );
-            }
-            else
-            {
-                rooms = await _bll.RoomService.GetAllAsync();
-            }
+            var rooms = await _bll.RoomService.GetAvailableRoomsAsync(
+                request.StartDate,
+                request.EndDate,
+                request.GuestCount
+            );
 
             var roomDtos = rooms.Select(r => _mapper.Map(r)).ToList();
             return Ok(roomDtos);
