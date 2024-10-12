@@ -75,16 +75,17 @@ public class RoomRepository : BaseEntityRepository<Room, DTO.DAL.Room, AppDbCont
 
         if (noTracking) query = query.AsNoTracking();
 
-        return await query.Select(r => new DTO.DAL.Room
-        {
-            Id = r.Id,
-            RoomName = r.RoomName,
-            RoomNumber = r.RoomNumber,
-            BedCount = r.BedCount,
-            Price = r.Price,
-            ImageUrl = r.ImageUrl,
-            HotelId = r.Hotel!.Id
-        }).ToListAsync();
+        return await query
+            .OrderBy(r => r.RoomNumber)
+            .Select(r => new DTO.DAL.Room
+            {
+                Id = r.Id,
+                RoomName = r.RoomName,
+                RoomNumber = r.RoomNumber,
+                BedCount = r.BedCount,
+                Price = r.Price,
+                ImageUrl = r.ImageUrl,
+                HotelId = r.Hotel!.Id
+            }).ToListAsync();
     }
 }
-
