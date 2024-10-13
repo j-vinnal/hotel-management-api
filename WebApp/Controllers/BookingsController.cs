@@ -1,4 +1,4 @@
-using App.Contracts.BLL;
+﻿using App.Contracts.BLL;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using App.Domain.Identity;
@@ -87,7 +87,7 @@ namespace WebApp.Controllers
 
             var viewModel = new BookingViewModel
             {
-                RoomSelectList = new SelectList(await _bll.RoomService.GetAvailableRoomsAsync(start, end, bedCount), "Id", "RoomNumber"),
+                RoomSelectList = new SelectList(await _bll.RoomService.GetAvailableRoomsAsync(start, end, bedCount, null), "Id", "RoomNumber"),
                 Booking = new App.DTO.Public.v1.Booking
                 {
                     StartDate = start,

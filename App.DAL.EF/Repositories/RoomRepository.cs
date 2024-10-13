@@ -58,13 +58,14 @@ public class RoomRepository : BaseEntityRepository<Room, DTO.DAL.Room, AppDbCont
     }
 
 
-    public async Task<IEnumerable<DTO.DAL.Room>> GetAvailableRoomsAsync(DateTime? startDate, DateTime? endDate, int? guestCount, bool noTracking = true)
+    public async Task<IEnumerable<DTO.DAL.Room>> GetAvailableRoomsAsync(DateTime? startDate, DateTime? endDate, int? guestCount, Guid? currentBookingId, bool noTracking = true)
     {
         var startDateOnly = startDate ?? DateTime.MinValue;
         var endDateOnly = endDate ?? DateTime.MaxValue;
 
         var bookedRoomIds = await RepositoryDbContext.Bookings
             .Where(b => !b.IsCancelled &&
+                        b.Id != currentBookingId && // Exclude the current booking, if client/admin wants to edit booking dates
                        ((startDateOnly >= b.StartDate.Date && startDateOnly <= b.EndDate.Date) ||
                          (endDateOnly <= b.EndDate.Date && endDateOnly >= b.StartDate.Date)))
             .Select(b => b.RoomId)

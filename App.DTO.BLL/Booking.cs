@@ -6,7 +6,7 @@ public class Booking : IEntityId
 {
     public Guid Id { get; set; }
     public Guid RoomId { get; set; }
-    public int RoomNumber { get; set; } 
+    public int? RoomNumber { get; set; } 
     public string? QuestFirstName { get; set; } 
     
     public string? QuestLastName { get; set; }

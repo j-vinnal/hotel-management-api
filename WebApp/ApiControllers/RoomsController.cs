@@ -61,7 +61,8 @@ namespace WebApp.ApiControllers
             var rooms = await _bll.RoomService.GetAvailableRoomsAsync(
                 request.StartDate,
                 request.EndDate,
-                request.GuestCount
+                request.GuestCount,
+                request.CurrentBookingId
             );
 
             var roomDtos = rooms.Select(r => _mapper.Map(r)).ToList();

@@ -1,7 +1,9 @@
+using System.Net;
 using App.Contracts.BLL;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using App.Domain.Identity;
+using App.DTO.Public.v1;
 using App.Public;
 using Asp.Versioning;
 using AutoMapper;
@@ -95,7 +97,7 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="id">The ID of the booking to update.</param>
         /// <param name="bookingDto">The updated booking data.</param>
-        /// <returns>No content if successful.</returns>
+        /// <returns>No content if successful, or a bad request if the room is already booked for the selected dates.</returns>
         [Authorize(Roles = RoleConstants.Admin)]
         [HttpPut("{id}")]
         public async Task<IActionResult> PutBooking(Guid id, App.DTO.Public.v1.Booking bookingDto)
@@ -103,6 +105,25 @@ namespace WebApp.ApiControllers
             if (id != bookingDto.Id)
             {
                 return BadRequest();
+            }
+
+            // Check if the room is available for the new dates
+            bool canBook = !await _bll.BookingService.IsRoomBookedAsync(
+                bookingDto.RoomId, 
+                bookingDto.StartDate, 
+                bookingDto.EndDate, 
+                bookingDto.Id // Pass the current booking ID to exclude it from the check
+            );
+
+            if (!canBook)
+            {
+                return BadRequest(
+                    new RestApiErrorResponse()
+                    {
+                        Status = HttpStatusCode.BadRequest,
+                        Error = $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}."
+                    }
+                );
             }
 
             var booking = _mapper.Map(bookingDto)!;
@@ -131,7 +152,10 @@ namespace WebApp.ApiControllers
         /// Creates a new booking.
         /// </summary>
         /// <param name="bookingDto">The booking data to create.</param>
-        /// <returns>The created booking.</returns>
+        /// <returns>
+        /// The created booking if successful.
+        /// Returns a bad request if the room is already booked for the selected dates.
+        /// </returns>
         [HttpPost]
         public async Task<ActionResult<App.DTO.Public.v1.Booking>> PostBooking(App.DTO.Public.v1.Booking bookingDto)
         {
@@ -141,9 +165,16 @@ namespace WebApp.ApiControllers
             }
 
             bool canBook = !await _bll.BookingService.IsRoomBookedAsync(bookingDto.RoomId, bookingDto.StartDate, bookingDto.EndDate);
+            
             if (!canBook)
             {
-                return BadRequest("The room is already booked for the selected date range.");
+                return BadRequest(
+                    new RestApiErrorResponse()
+                    {
+                        Status = HttpStatusCode.BadRequest,
+                        Error = $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}."
+                    }
+                );
             }
 
             var booking = _mapper.Map(bookingDto)!;
