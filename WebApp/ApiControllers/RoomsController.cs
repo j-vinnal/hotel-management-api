@@ -19,6 +19,7 @@ namespace WebApp.ApiControllers
     [ApiController]
     [ApiVersion("1.0")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(Roles = "Admin", AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/v{version:apiVersion}/[controller]")]
     public class RoomsController : ControllerBase
     {
@@ -93,7 +94,6 @@ namespace WebApp.ApiControllers
         /// <param name="id">The ID of the room to update.</param>
         /// <param name="roomDto">The updated room data.</param>
         /// <returns>No content if successful.</returns>
-        [Authorize(Roles = RoleConstants.Admin)]
         [HttpPut("{id}")]
         public async Task<IActionResult> PutRoom(Guid id, App.DTO.Public.v1.Room roomDto)
         {
@@ -129,7 +129,6 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="roomDto">The room data to create.</param>
         /// <returns>The created room.</returns>
-        [Authorize(Roles = RoleConstants.Admin)]
         [HttpPost]
         public async Task<ActionResult<App.DTO.Public.v1.Room>> PostRoom(App.DTO.Public.v1.Room roomDto)
         {
@@ -145,7 +144,6 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="id">The ID of the room to delete.</param>
         /// <returns>No content if successful.</returns>
-        [Authorize(Roles = RoleConstants.Admin)]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteRoom(Guid id)
         {

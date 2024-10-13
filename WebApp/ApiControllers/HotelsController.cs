@@ -1,7 +1,9 @@
+using System.Net;
 using App.Contracts.BLL;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using App.Domain.Identity;
+using App.DTO.Public.v1;
 using App.Public;
 using Asp.Versioning;
 using AutoMapper;
@@ -18,6 +20,7 @@ namespace WebApp.ApiControllers
     [ApiController]
     [ApiVersion("1.0")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(Roles = "Admin", AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/v{version:apiVersion}/[controller]")]
     public class HotelsController : ControllerBase
     {
@@ -59,7 +62,10 @@ namespace WebApp.ApiControllers
         [HttpGet("{id}")]
         public async Task<ActionResult<App.DTO.Public.v1.Hotel>> GetHotel(Guid id)
         {
-            var hotel = await _bll.HotelService.FindAsync(id);
+            
+            var appUserId = Guid.Parse(_userManager.GetUserId(User));
+            
+            var hotel = await _bll.HotelService.FindAsync(id, appUserId);
 
             if (hotel == null)
             {
@@ -83,9 +89,23 @@ namespace WebApp.ApiControllers
             {
                 return BadRequest();
             }
+            
+            var appUserId = Guid.Parse(_userManager.GetUserId(User));
+            
+            var existingEntity = await _bll.BookingService.FindAsync(hotelDto.Id, appUserId);
+            if (existingEntity == null)
+            {
+                return BadRequest(
+                    new RestApiErrorResponse()
+                    {
+                        Status = HttpStatusCode.BadRequest,
+                        Error = "Hotel not found." 
+                    }
+                    );
+            }
 
             var hotel = _mapper.Map(hotelDto)!;
-            hotel.AppUserId = Guid.Parse(_userManager.GetUserId(User));
+            hotel.AppUserId = appUserId;
             _bll.HotelService.Update(hotel);
 
             try
@@ -106,44 +126,7 @@ namespace WebApp.ApiControllers
 
             return NoContent();
         }
-
-        /// <summary>
-        /// Creates a new hotel.
-        /// </summary>
-        /// <param name="hotelDto">The hotel data to create.</param>
-        /// <returns>The created hotel.</returns>
-        [Authorize(Roles = RoleConstants.Admin)]
-        [HttpPost]
-        public async Task<ActionResult<App.DTO.Public.v1.Hotel>> PostHotel(App.DTO.Public.v1.Hotel hotelDto)
-        {
-            var hotel = _mapper.Map(hotelDto)!;
-            hotel.AppUserId = Guid.Parse(_userManager.GetUserId(User));
-            _bll.HotelService.Add(hotel);
-            await _bll.SaveChangesAsync();
-
-            return CreatedAtAction("GetHotel", new { id = hotel.Id }, _mapper.Map(hotel));
-        }
-
-        /// <summary>
-        /// Deletes a specific hotel.
-        /// </summary>
-        /// <param name="id">The ID of the hotel to delete.</param>
-        /// <returns>No content if successful.</returns>
-        [Authorize(Roles = RoleConstants.Admin)]
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteHotel(Guid id)
-        {
-            var hotel = await _bll.HotelService.FindAsync(id);
-            if (hotel == null)
-            {
-                return NotFound();
-            }
-
-            _bll.HotelService.Remove(hotel);
-            await _bll.SaveChangesAsync();
-
-            return NoContent();
-        }
+        
 
         /// <summary>
         /// Checks if a hotel exists.
