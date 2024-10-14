@@ -1,7 +1,76 @@
-# hotel-management-api
+# Hotel Management API
+
+This repository contains the Hotel Management API, a robust and scalable solution for managing hotel operations. The project is structured using a layered architecture, promoting modularity, maintainability, and testability.
+
+## Table of Contents
+
+- [Project Structure](#project-structure)
+- [Base Layer](#base-layer)
+- [App Layer](#app-layer)
+- [WebApp Layer](#webapp-layer)
+- [Testing](#testing)
+- [Getting Started](#getting-started)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Project Structure
+
+The project is organized into several key layers:
+
+### Base Layer
+
+This layer contains reusable components and infrastructure shared across the application.
+
+- **Base.Contracts**: Defines core interfaces like `IBaseEntityRepository<TEntity, TKey>` for generic repository operations and `IBaseUnitOfWork` for the Unit of Work pattern.
+- **Base.DAL**: Implements base data access logic with `BaseEntityRepository<TKey, TDomainEntity, TDalEntity, TDbContext>` and `BaseUnitOfWork<TDbContext>`.
+- **Base.BLL**: Implements base business logic services with `BaseEntityService<TBllEntity, TDalEntity, TRepository, TKey>`.
+- **Base.Domain**: Contains base domain entity classes such as `EntityId<TKey>` and `AuditableEntity<TKey>`.
+- **Base.Helpers**: Contains helper classes for common tasks, including JWT token handling.
+- **Base.Resources**: Contains resource files for localization.
+
+### App Layer
+
+This layer contains the specific business logic and data access for the hotel management application.
+
+- **App.Contracts.DAL**: Defines application-specific interfaces extending the base interfaces.
+- **App.DAL.EF**: Implements the application's data access layer using Entity Framework Core.
+- **App.BLL**: Implements the application's business logic services.
+- **App.Domain**: Contains the application's domain models.
+- **App.DTO**: Contains Data Transfer Objects for DAL, BLL, and Public API.
+
+### WebApp Layer
+
+This layer contains the ASP.NET Core Web API implementation.
+
+- **Controllers**: Contains MVC controllers for testing purposes.
+- **ApiControllers**: Contains API controllers for handling API requests.
+- **Program.cs**: The application's entry point, responsible for setting up dependency injection, database configuration, and middleware.
+- **Middleware**: Contains custom middleware for handling X-Road specific headers and errors.
+
+### Testing
+
+- **App.Test**: Contains integration tests for the API controllers.
+
+## Getting Started
+
+To get started with the project, follow these steps:
+
+1. Clone the repository.
+2. Set up the database and configure the connection string.
+3. Run the application using your preferred IDE or command line.
+
+## Contributing
+
+Contributions are welcome! Please fork the repository and submit a pull request for any enhancements or bug fixes.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.   
 
 
-## Useful commands in .net console CLI
+
+
+## Useful commands in .net console CLI   
 
 Install/update tooling
 
