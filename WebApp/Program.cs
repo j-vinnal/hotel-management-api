@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Text;
 using App.BLL;
 using App.Contracts.BLL;
@@ -17,6 +18,10 @@ using Microsoft.IdentityModel.Tokens;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using WebApp;
 using AutoMapperProfile = App.DAL.EF.AutoMapperProfile;
+using System.Net.Http.Headers;
+using System.Net.Http;
+using App.DTO.Public.v1;
+using Microsoft.AspNetCore.Mvc;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -133,6 +138,29 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
 builder.Services.AddSwaggerGen();
 
+//This configuration ensures that when a model validation error occurs, 
+//the API returns a structured error response instead of the default ValidationProblemDetails
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+
+            var errorResponse = new RestApiErrorResponse
+            {
+                Status = HttpStatusCode.BadRequest,
+                Error = string.Join("; ", errors)
+            };
+
+            return new BadRequestObjectResult(errorResponse);
+        };
+    });
+
+
 
 // ===================================================
 var app = builder.Build();
@@ -200,7 +228,7 @@ static async void SetupAppData(IApplicationBuilder app, IConfiguration configura
     //DI engine
     using var serviceScope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>()
         .CreateScope();
-    
+
     var env = serviceScope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
     AppDataInit.InitializeSeedDataPath(env);
 
@@ -252,3 +280,4 @@ static async void SetupAppData(IApplicationBuilder app, IConfiguration configura
         logger.LogWarning($"Seeded app data: {changedEntries} entries changed");
     }
 }
+

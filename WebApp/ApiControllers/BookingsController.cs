@@ -46,17 +46,28 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <returns>A list of bookings.</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<App.DTO.Public.v1.Booking>>> GetBookings()
+        public async Task<ActionResult<IEnumerable<App.DTO.Public.v1.Booking>>> GetBookings(bool viewAll = true)
         {
             IEnumerable<App.DTO.BLL.Booking> bookings;
 
+            var userId = Guid.Parse(_userManager.GetUserId(User));
+
             if (User.IsInRole(RoleConstants.Admin))
             {
-                bookings = await _bll.BookingService.GetAllSortedAsync();
+                if (viewAll)
+                {
+                    // Fetch all bookings for admin users
+                    bookings = await _bll.BookingService.GetAllSortedAsync();
+                }
+                else
+                {
+                    // Fetch only the admin's personal bookings
+                    bookings = await _bll.BookingService.GetAllSortedAsync(userId);
+                }
             }
             else
             {
-                var userId = Guid.Parse(_userManager.GetUserId(User));
+                // Fetch bookings for the current user
                 bookings = await _bll.BookingService.GetAllSortedAsync(userId);
             }
 
@@ -109,9 +120,9 @@ namespace WebApp.ApiControllers
 
             // Check if the room is available for the new dates
             bool canBook = !await _bll.BookingService.IsRoomBookedAsync(
-                bookingDto.RoomId, 
-                bookingDto.StartDate, 
-                bookingDto.EndDate, 
+                bookingDto.RoomId,
+                bookingDto.StartDate,
+                bookingDto.EndDate,
                 bookingDto.Id // Pass the current booking ID to exclude it from the check
             );
 
@@ -165,7 +176,7 @@ namespace WebApp.ApiControllers
             }
 
             bool canBook = !await _bll.BookingService.IsRoomBookedAsync(bookingDto.RoomId, bookingDto.StartDate, bookingDto.EndDate);
-            
+
             if (!canBook)
             {
                 return BadRequest(
@@ -192,18 +203,9 @@ namespace WebApp.ApiControllers
         [HttpPost("{id}/cancel")]
         public async Task<IActionResult> CancelBooking(Guid id)
         {
-            App.DTO.BLL.Booking? booking;
 
-            if (User.IsInRole(RoleConstants.Admin))
-            {
-                booking = await _bll.BookingService.FindAsync(id);
-            }
-            else
-            {
-                var userId = Guid.Parse(_userManager.GetUserId(User));
-                booking = await _bll.BookingService.FindAsync(id, userId);
-            }
-
+            var userId = Guid.Parse(_userManager.GetUserId(User));
+            var booking = await _bll.BookingService.FindAsync(id, userId);
 
             if (booking == null)
             {
@@ -218,7 +220,13 @@ namespace WebApp.ApiControllers
                 return NoContent();
             }
 
-            return Forbid();
+            return BadRequest(
+                new RestApiErrorResponse()
+                {
+                    Status = HttpStatusCode.Forbidden,
+                    Error = $"Booking can only be cancelled within {BookingConstants.CancellationDaysLimit} days of the start date."
+                }
+            );
         }
 
         /// <summary>
@@ -258,13 +266,8 @@ namespace WebApp.ApiControllers
         /// <returns>True if the user can cancel the booking, otherwise false.</returns>
         private bool CanCancelBooking(App.DTO.BLL.Booking booking)
         {
-            if (User.IsInRole(RoleConstants.Admin))
-            {
-                return true;
-            }
-
-            var userId = Guid.Parse(_userManager.GetUserId(User));
-            return booking.QuestId == userId && (booking.StartDate - DateTime.UtcNow).TotalDays > BookingConstants.CancellationDaysLimit;
+            var daysDifference = (DateTime.UtcNow.Date - booking.StartDate.Date).TotalDays;
+            return daysDifference <= BookingConstants.CancellationDaysLimit;
         }
     }
 }

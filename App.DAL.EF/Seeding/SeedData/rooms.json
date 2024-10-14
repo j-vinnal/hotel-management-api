@@ -1,5 +1,6 @@
 [
   {
+    "Id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "RoomNumber": 101,
     "RoomName": "Deluxe Suite",
     "BedCount": 2,
@@ -8,6 +9,7 @@
     "HotelId": "5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"
   },
   {
+    "Id": "b2c3d4e5-f678-9012-abcd-ef2345678901",
     "RoomNumber": 102,
     "RoomName": "Executive Room",
     "BedCount": 1,
@@ -16,6 +18,7 @@
     "HotelId": "5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"
   },
   {
+    "Id": "c3d4e5f6-7890-1234-abcd-ef3456789012",
     "RoomNumber": 103,
     "RoomName": "Family Suite",
     "BedCount": 3,
@@ -24,6 +27,7 @@
     "HotelId": "5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"
   },
   {
+    "Id": "d4e5f678-9012-3456-abcd-ef4567890123",
     "RoomNumber": 104,
     "RoomName": "Standard room",
     "BedCount": 2,
@@ -32,6 +36,7 @@
     "HotelId": "5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"
   },
   {
+    "Id": "e5f67890-1234-5678-abcd-ef5678901234",
     "RoomNumber": 105,
     "RoomName": "Single room",
     "BedCount": 1,

@@ -40,6 +40,8 @@ namespace WebApp.ApiControllers
             _userManager = userManager;
             _mapper = new BllPublicMapper<App.DTO.BLL.Hotel, App.DTO.Public.v1.Hotel>(autoMapper);
         }
+        
+        //TODO: Implement get hotel name by id
 
         /// <summary>
         /// Gets all hotels.
@@ -48,7 +50,9 @@ namespace WebApp.ApiControllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<App.DTO.Public.v1.Hotel>>> GetHotels()
         {
-            var hotels = await _bll.HotelService.GetAllAsync();
+            var appUserId = Guid.Parse(_userManager.GetUserId(User));
+            
+            var hotels = await _bll.HotelService.GetAllAsync(appUserId);
             var hotelDtos = hotels.Select(h => _mapper.Map(h)).ToList();
 
             return Ok(hotelDtos);
@@ -92,7 +96,7 @@ namespace WebApp.ApiControllers
             
             var appUserId = Guid.Parse(_userManager.GetUserId(User));
             
-            var existingEntity = await _bll.BookingService.FindAsync(hotelDto.Id, appUserId);
+            var existingEntity = await _bll.HotelService.FindAsync(hotelDto.Id, appUserId);
             if (existingEntity == null)
             {
                 return BadRequest(

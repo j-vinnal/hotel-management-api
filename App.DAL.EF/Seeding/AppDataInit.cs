@@ -88,19 +88,26 @@ public static class AppDataInit
     {
         var hotels = await LoadJsonData<List<Hotel>>(Path.Combine(SeedDataPath, "hotels.json"));
         var rooms = await LoadJsonData<List<Room>>(Path.Combine(SeedDataPath, "rooms.json"));
+        var bookings = await LoadJsonData<List<Booking>>(Path.Combine(SeedDataPath, "bookings.json"));
 
         var result = 0;
 
         if (!context.Hotels.Any())
         {
             context.Hotels.AddRange(hotels);
-            result = +await context.SaveChangesAsync();
+            result += await context.SaveChangesAsync();
         }
 
         if (!context.Rooms.Any())
         {
             context.Rooms.AddRange(rooms);
-            result = +await context.SaveChangesAsync();
+            result += await context.SaveChangesAsync();
+        }
+
+        if (!context.Bookings.Any())
+        {
+            context.Bookings.AddRange(bookings);
+            result += await context.SaveChangesAsync();
         }
 
         return result;

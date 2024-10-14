@@ -9,6 +9,7 @@ using AutoMapper;
 using Base.Helpers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using WebApp.Helpers;
 
 
 namespace WebApp.ApiControllers
@@ -76,6 +77,7 @@ namespace WebApp.ApiControllers
         /// <param name="id">The ID of the room.</param>
         /// <returns>The room with the specified ID.</returns>
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<ActionResult<App.DTO.Public.v1.Room>> GetRoom(Guid id)
         {
             var room = await _bll.RoomService.FindAsync(id);
@@ -95,11 +97,19 @@ namespace WebApp.ApiControllers
         /// <param name="roomDto">The updated room data.</param>
         /// <returns>No content if successful.</returns>
         [HttpPut("{id}")]
+   
         public async Task<IActionResult> PutRoom(Guid id, App.DTO.Public.v1.Room roomDto)
         {
+            
             if (id != roomDto.Id)
             {
-                return BadRequest();
+                return BadRequest(
+                    new RestApiErrorResponse()
+                    {
+                        Status = HttpStatusCode.BadRequest,
+                        Error = "Room not found"
+                    }
+                );
             }
 
             var room = _mapper.Map(roomDto)!;
