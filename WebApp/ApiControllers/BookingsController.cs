@@ -306,8 +306,9 @@ namespace WebApp.ApiControllers
         /// <returns>True if the user can cancel the booking, otherwise false.</returns>
         private bool CanCancelBooking(App.DTO.BLL.Booking booking)
         {
-            var daysDifference = (DateTime.UtcNow.Date - booking.StartDate.Date).TotalDays;
-            return daysDifference <= BookingConstants.CancellationDaysLimit;
+            DateTime dateOnly = DateTime.UtcNow.Date;
+            var canCancel = booking.StartDate.Date >= dateOnly.AddDays(BookingConstants.CancellationDaysLimit);
+            return canCancel;
         }
 
         /// <summary>
