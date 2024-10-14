@@ -46,33 +46,37 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <returns>A list of bookings.</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<App.DTO.Public.v1.Booking>>> GetBookings(bool viewAll = true)
+        public async Task<ActionResult<IEnumerable<Booking>>> GetBookings(bool viewAll = true)
         {
-            IEnumerable<App.DTO.BLL.Booking> bookings;
-
-            var userId = Guid.Parse(_userManager.GetUserId(User));
-
-            if (User.IsInRole(RoleConstants.Admin))
+            try
             {
-                if (viewAll)
+                IEnumerable<App.DTO.BLL.Booking> bookings;
+
+                var userId = Guid.Parse(_userManager.GetUserId(User));
+
+                if (User.IsInRole(RoleConstants.Admin))
                 {
-                    // Fetch all bookings for admin users
-                    bookings = await _bll.BookingService.GetAllSortedAsync();
+                    if (viewAll)
+                    {
+                        bookings = await _bll.BookingService.GetAllSortedAsync();
+                    }
+                    else
+                    {
+                        bookings = await _bll.BookingService.GetAllSortedAsync(userId);
+                    }
                 }
                 else
                 {
-                    // Fetch only the admin's personal bookings
                     bookings = await _bll.BookingService.GetAllSortedAsync(userId);
                 }
-            }
-            else
-            {
-                // Fetch bookings for the current user
-                bookings = await _bll.BookingService.GetAllSortedAsync(userId);
-            }
 
-            var bookingDtos = bookings.Select(b => _mapper.Map(b)).ToList();
-            return Ok(bookingDtos);
+                var bookingDtos = bookings.Select(b => _mapper.Map(b)).ToList();
+                return Ok(bookingDtos);
+            }
+            catch (Exception ex)
+            {
+                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+            }
         }
 
         /// <summary>
@@ -81,26 +85,33 @@ namespace WebApp.ApiControllers
         /// <param name="id">The ID of the booking.</param>
         /// <returns>The booking with the specified ID.</returns>
         [HttpGet("{id}")]
-        public async Task<ActionResult<App.DTO.Public.v1.Booking>> GetBooking(Guid id)
+        public async Task<ActionResult<Booking>> GetBooking(Guid id)
         {
-            App.DTO.BLL.Booking? booking;
-
-            if (User.IsInRole(RoleConstants.Admin))
+            try
             {
-                booking = await _bll.BookingService.FindWithDetailsAsync(id);
-            }
-            else
-            {
-                var userId = Guid.Parse(_userManager.GetUserId(User));
-                booking = await _bll.BookingService.FindWithDetailsAsync(id, userId);
-            }
+                App.DTO.BLL.Booking? booking;
 
-            if (booking == null)
-            {
-                return NotFound();
-            }
+                if (User.IsInRole(RoleConstants.Admin))
+                {
+                    booking = await _bll.BookingService.FindWithDetailsAsync(id);
+                }
+                else
+                {
+                    var userId = Guid.Parse(_userManager.GetUserId(User));
+                    booking = await _bll.BookingService.FindWithDetailsAsync(id, userId);
+                }
 
-            return Ok(_mapper.Map(booking));
+                if (booking == null)
+                {
+                    return NotFound();
+                }
+
+                return Ok(_mapper.Map(booking));
+            }
+            catch (Exception ex)
+            {
+                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+            }
         }
 
         /// <summary>
@@ -111,12 +122,14 @@ namespace WebApp.ApiControllers
         /// <returns>No content if successful, or a bad request if the room is already booked for the selected dates.</returns>
         [Authorize(Roles = RoleConstants.Admin)]
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutBooking(Guid id, App.DTO.Public.v1.Booking bookingDto)
+        public async Task<IActionResult> PutBooking(Guid id, Booking bookingDto)
         {
-            if (id != bookingDto.Id)
+            try
             {
-                return BadRequest();
-            }
+                if (id != bookingDto.Id)
+                {
+                    return BadRequest();
+                }
 
             // Check if the room is available for the new dates
             bool canBook = !await _bll.BookingService.IsRoomBookedAsync(
@@ -140,59 +153,68 @@ namespace WebApp.ApiControllers
             var booking = _mapper.Map(bookingDto)!;
             _bll.BookingService.Update(booking);
 
-            try
-            {
-                await _bll.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!await BookingExists(id))
+                try
                 {
-                    return NotFound();
+                    await _bll.SaveChangesAsync();
                 }
-                else
+                catch (DbUpdateConcurrencyException)
                 {
-                    throw;
+                    if (!await BookingExists(id))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw;
+                    }
                 }
-            }
 
-            return NoContent();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+            }
         }
 
         /// <summary>
         /// Creates a new booking.
         /// </summary>
         /// <param name="bookingDto">The booking data to create.</param>
-        /// <returns>
-        /// The created booking if successful.
-        /// Returns a bad request if the room is already booked for the selected dates.
-        /// </returns>
+        /// <returns>The created booking if successful. Returns a bad request if the room is already booked for the selected dates.</returns>
         [HttpPost]
-        public async Task<ActionResult<App.DTO.Public.v1.Booking>> PostBooking(App.DTO.Public.v1.Booking bookingDto)
+        public async Task<ActionResult<Booking>> PostBooking(Booking bookingDto)
         {
-            if (!User.IsInRole(RoleConstants.Admin))
+            try
             {
-                bookingDto.QuestId = Guid.Parse(_userManager.GetUserId(User));
-            }
+                if (!User.IsInRole(RoleConstants.Admin))
+                {
+                    bookingDto.QuestId = Guid.Parse(_userManager.GetUserId(User));
+                }
 
             bool canBook = !await _bll.BookingService.IsRoomBookedAsync(bookingDto.RoomId, bookingDto.StartDate, bookingDto.EndDate);
 
-            if (!canBook)
-            {
-                return BadRequest(
-                    new RestApiErrorResponse()
-                    {
-                        Status = HttpStatusCode.BadRequest,
-                        Error = $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}."
-                    }
-                );
+                if (!canBook)
+                {
+                    return BadRequest(
+                        new RestApiErrorResponse()
+                        {
+                            Status = HttpStatusCode.BadRequest,
+                            Error = $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}."
+                        }
+                    );
+                }
+
+                var booking = _mapper.Map(bookingDto)!;
+                _bll.BookingService.Add(booking);
+                await _bll.SaveChangesAsync();
+
+                return CreatedAtAction("GetBooking", new { id = booking.Id }, _mapper.Map(booking));
             }
-
-            var booking = _mapper.Map(bookingDto)!;
-            _bll.BookingService.Add(booking);
-            await _bll.SaveChangesAsync();
-
-            return CreatedAtAction("GetBooking", new { id = booking.Id }, _mapper.Map(booking));
+            catch (Exception ex)
+            {
+                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+            }
         }
 
         /// <summary>
@@ -203,30 +225,36 @@ namespace WebApp.ApiControllers
         [HttpPost("{id}/cancel")]
         public async Task<IActionResult> CancelBooking(Guid id)
         {
-
-            var userId = Guid.Parse(_userManager.GetUserId(User));
-            var booking = await _bll.BookingService.FindAsync(id, userId);
-
-            if (booking == null)
+            try
             {
-                return NotFound();
-            }
+                var userId = Guid.Parse(_userManager.GetUserId(User));
+                var booking = await _bll.BookingService.FindAsync(id, userId);
 
-            if (CanCancelBooking(booking))
-            {
-                booking.IsCancelled = true;
-                _bll.BookingService.Update(booking);
-                await _bll.SaveChangesAsync();
-                return NoContent();
-            }
-
-            return BadRequest(
-                new RestApiErrorResponse()
+                if (booking == null)
                 {
-                    Status = HttpStatusCode.Forbidden,
-                    Error = $"Booking can only be cancelled within {BookingConstants.CancellationDaysLimit} days of the start date."
+                    return NotFound();
                 }
-            );
+
+                if (CanCancelBooking(booking))
+                {
+                    booking.IsCancelled = true;
+                    _bll.BookingService.Update(booking);
+                    await _bll.SaveChangesAsync();
+                    return NoContent();
+                }
+
+                return BadRequest(
+                    new RestApiErrorResponse()
+                    {
+                        Status = HttpStatusCode.Forbidden,
+                        Error = $"Booking can only be cancelled within {BookingConstants.CancellationDaysLimit} days of the start date."
+                    }
+                );
+            }
+            catch (Exception ex)
+            {
+                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+            }
         }
 
         /// <summary>
@@ -238,15 +266,22 @@ namespace WebApp.ApiControllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBooking(Guid id)
         {
-            var booking = await _bll.BookingService.FindAsync(id);
-            if (booking == null)
+            try
             {
-                return NotFound();
-            }
+                var booking = await _bll.BookingService.FindAsync(id);
+                if (booking == null)
+                {
+                    return NotFound();
+                }
 
-            _bll.BookingService.Remove(booking);
-            await _bll.SaveChangesAsync();
-            return NoContent();
+                _bll.BookingService.Remove(booking);
+                await _bll.SaveChangesAsync();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+            }
         }
 
         /// <summary>
@@ -268,6 +303,28 @@ namespace WebApp.ApiControllers
         {
             var daysDifference = (DateTime.UtcNow.Date - booking.StartDate.Date).TotalDays;
             return daysDifference <= BookingConstants.CancellationDaysLimit;
+        }
+
+        /// <summary>
+        /// Handles X-Road specific errors.
+        /// </summary>
+        /// <param name="exception">The exception that occurred.</param>
+        /// <param name="errorType">The type of X-Road error.</param>
+        /// <returns>An ActionResult with the error details.</returns>
+        private ActionResult HandleXRoadError(Exception exception, string errorType)
+        {
+            var errorResponse = new
+            {
+                type = errorType,
+                message = exception.Message,
+                detail = Guid.NewGuid().ToString() // Unique error ID for tracking
+            };
+
+            Response.ContentType = "application/json";
+            Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            Response.Headers.Add("X-Road-Error", errorType);
+
+            return new JsonResult(errorResponse);
         }
     }
 }

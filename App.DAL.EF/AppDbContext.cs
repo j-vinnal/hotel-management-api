@@ -31,7 +31,7 @@ public class AppDbContext : IdentityDbContext<AppUser, AppRole, Guid, IdentityUs
         // disable cascade delete
         foreach (var foreignKey in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
             foreignKey.DeleteBehavior = DeleteBehavior.Restrict;
-
+        
         // Set a global convention for DateTime properties to be treated as UTC
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {

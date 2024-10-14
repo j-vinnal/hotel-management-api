@@ -22,15 +22,32 @@ using System.Net.Http.Headers;
 using System.Net.Http;
 using App.DTO.Public.v1;
 using Microsoft.AspNetCore.Mvc;
+using Npgsql;
+using WebApp.Middleware;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
-                       throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
+builder.Services.AddControllers();
+
+// Add services to the container.
+var useInMemory = builder.Configuration.GetValue<bool>("Database:UseInMemory");
+
+if (useInMemory)
+{
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseInMemoryDatabase("InMemoryDb"));
+}
+else
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
+                           throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseNpgsql(connectionString));
+}
+
+//NpgsqlConnection.GlobalTypeMapper.EnableDynamicJson();
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -167,19 +184,21 @@ var app = builder.Build();
 // ===================================================
 
 
-// Set up all the database stuff and seed initial data
-SetupAppData(app, app.Configuration);
+// Register the X-Road error handling middleware
+app.UseMiddleware<XRoadErrorHandlingMiddleware>();
+
+// Setup application data
+SetupAppData(app, builder.Configuration);
 
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseMigrationsEndPoint();
+    app.UseDeveloperExceptionPage();
 }
 else
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -188,13 +207,14 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseCors("CorsAllowAll");
 
 app.UseRequestLocalization(options:
     app.Services.GetService<IOptions<RequestLocalizationOptions>>()?.Value!
 );
-
-app.UseAuthorization();
 
 app.UseSwagger();
 app.UseSwaggerUI(options =>
@@ -219,6 +239,8 @@ app.MapControllerRoute(
 
 
 app.MapRazorPages();
+
+
 
 app.Run();
 
@@ -248,19 +270,20 @@ static async void SetupAppData(IApplicationBuilder app, IConfiguration configura
 
     if (logger == null) throw new ApplicationException("Problem in services. Can't initialize logger");
 
-    if (context.Database.ProviderName!.Contains("InMemory")) return;
+   // if (context.Database.ProviderName!.Contains("InMemory")) return;
 
 
     //TODO: wait for db connection
 
 
-    if (configuration.GetValue<bool>("DataInit:DropDatabase"))
+    if (configuration.GetValue<bool>("DataInit:DropDatabase") && !context.Database.ProviderName!.Contains("InMemory"))
     {
         logger.LogWarning("Dropping Database");
         AppDataInit.DropDatabase(context);
+        
     }
 
-    if (configuration.GetValue<bool>("DataInit:MigrateDatabase"))
+    if (configuration.GetValue<bool>("DataInit:MigrateDatabase") && !context.Database.ProviderName!.Contains("InMemory"))
     {
         logger.LogWarning("Migrating Database");
         AppDataInit.MigrateDatabase(context);
@@ -280,4 +303,11 @@ static async void SetupAppData(IApplicationBuilder app, IConfiguration configura
         logger.LogWarning($"Seeded app data: {changedEntries} entries changed");
     }
 }
+
+// needed for unit testing, to change generated top level statement class to public
+public partial class Program
+{
+}
+
+
 

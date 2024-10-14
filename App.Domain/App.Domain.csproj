@@ -8,8 +8,8 @@
 
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="8.0.8" />
-        <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="8.0.8" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="8.0.10" />
+        <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="8.0.10" />
     </ItemGroup>
 
 

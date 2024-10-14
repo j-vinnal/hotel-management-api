@@ -19,6 +19,7 @@ public static class AppDataInit
     {
         // Check if running in Docker
         var isDocker = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
+      
 
         if (isDocker)
         {
@@ -38,11 +39,13 @@ public static class AppDataInit
     public static void DropDatabase(AppDbContext context)
     {
         context.Database.EnsureDeleted();
+       
     }
 
     public static async Task SeedIdentity(UserManager<AppUser> userManager, RoleManager<AppRole> roleManager, ILogger logger)
     {
         var adminData = await LoadJsonData<AdminUserData>(Path.Combine(SeedDataPath, "admin.json"));
+        var guestData = await LoadJsonData<AdminUserData>(Path.Combine(SeedDataPath, "guest.json")); 
 
         // Create roles
         foreach (var role in RoleConstants.DefaultRoles)
@@ -81,6 +84,42 @@ public static class AppDataInit
             });
 
             await userManager.AddToRoleAsync(admin, RoleConstants.Admin);
+        }
+
+        // Create guest user
+        var guest = await userManager.FindByIdAsync(guestData.Id);
+        if (guest == null)
+        {
+            guest = new AppUser
+            {
+                Id = Guid.Parse(guestData.Id),
+                UserName = guestData.UserName,
+                Email = guestData.UserName,
+                FirstName = guestData.FirstName,
+                LastName = guestData.LastName,
+                PersonalCode = guestData.PersonalCode
+            };
+            var result = await userManager.CreateAsync(guest, guestData.Password);
+
+            if (!result.Succeeded)
+            {
+                logger.LogError("Failed to create user {UserName}. Errors: {Errors}", guest.UserName, string.Join(", ", result.Errors.Select(e => e.Description)));
+                throw new Exception($"Failed to create user {guest.UserName}.");
+            }
+
+            var res = await userManager.AddClaimsAsync(guest, new List<Claim>
+            {
+                new(ClaimTypes.GivenName, guest.FirstName),
+                new(ClaimTypes.Surname, guest.LastName),
+                new("PersonalCode", guest.PersonalCode)
+            });
+
+            await userManager.AddToRoleAsync(guest, RoleConstants.Guest);
+            logger.LogInformation("Guest user {UserName} created successfully.", guest.UserName);
+        }
+        else
+        {
+            logger.LogInformation("Guest user {UserName} already exists.", guest.UserName);
         }
     }
 
