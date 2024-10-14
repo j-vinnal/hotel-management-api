@@ -22,6 +22,7 @@ namespace WebApp.ApiControllers
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Authorize(Roles = "Admin", AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/v{version:apiVersion}/[controller]")]
+
     public class HotelsController : ControllerBase
     {
         private readonly IAppBLL _bll;
@@ -177,7 +178,7 @@ namespace WebApp.ApiControllers
 
             Response.ContentType = "application/json";
             Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-            Response.Headers.Add("X-Road-Error", errorType);
+            Response.Headers.Append("X-Road-Error", errorType);
 
             return new JsonResult(errorResponse);
         }

@@ -22,6 +22,7 @@ namespace WebApp.ApiControllers
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Authorize(Roles = "Admin", AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/v{version:apiVersion}/[controller]")]
+
     public class RoomsController : ControllerBase
     {
         private readonly IAppBLL _bll;
@@ -226,7 +227,7 @@ namespace WebApp.ApiControllers
             {
                 type = errorType,
                 message = exception.Message,
-                detail = Guid.NewGuid().ToString() 
+                detail = Guid.NewGuid().ToString()
             };
 
             Response.ContentType = "application/json";

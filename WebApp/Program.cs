@@ -29,7 +29,7 @@ using WebApp.Middleware;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+//builder.Services.AddControllers();
 
 // Add services to the container.
 var useInMemory = builder.Configuration.GetValue<bool>("Database:UseInMemory");
@@ -184,8 +184,7 @@ var app = builder.Build();
 // ===================================================
 
 
-// Register the X-Road error handling middleware
-app.UseMiddleware<XRoadErrorHandlingMiddleware>();
+
 
 // Setup application data
 SetupAppData(app, builder.Configuration);
@@ -207,7 +206,12 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseAuthentication();
+// Register the X-Road error handling middleware and 
+app.UseMiddleware<XRoadErrorHandlingMiddleware>();
+
+//Gives CORS error
+//app.UseMiddleware<XRoadHeaderMiddleware>();
+
 app.UseAuthorization();
 
 app.UseCors("CorsAllowAll");

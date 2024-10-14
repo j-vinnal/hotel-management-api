@@ -19,6 +19,7 @@ namespace WebApp.ApiControllers
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/[controller]")]
     [Authorize(Roles = "Admin", AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+
     public class ClientsController : ControllerBase
     {
         private readonly UserManager<AppUser> _userManager;
@@ -132,7 +133,7 @@ namespace WebApp.ApiControllers
             {
                 type = errorType,
                 message = exception.Message,
-                detail = Guid.NewGuid().ToString() 
+                detail = Guid.NewGuid().ToString()
             };
 
             Response.ContentType = "application/json";
