@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using App.Domain.Identity;
@@ -40,11 +41,19 @@ namespace WebApp.ApiControllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Client>>> GetClients()
         {
-            var users = await _userManager.Users
-                .OrderBy(u => u.FirstName) 
-                .ToListAsync();
-            var clients = users.Select(u => _mapper.Map(u)).ToList();
-            return Ok(clients);
+
+            try
+            {
+                var users = await _userManager.Users
+                    .OrderBy(u => u.FirstName)
+                    .ToListAsync();
+                var clients = users.Select(u => _mapper.Map(u)).ToList();
+                return Ok(clients);
+            }
+            catch (Exception ex)
+            {
+                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+            }
         }
 
         /// <summary>
@@ -55,13 +64,21 @@ namespace WebApp.ApiControllers
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<Client>> GetClient(Guid id)
         {
-            var user = await _userManager.FindByIdAsync(id.ToString());
-            if (user == null)
+
+            try
             {
-                return NotFound();
+                var user = await _userManager.FindByIdAsync(id.ToString());
+                if (user == null)
+                {
+                    return NotFound();
+                }
+                var client = _mapper.Map(user);
+                return Ok(client);
             }
-            var client = _mapper.Map(user);
-            return Ok(client);
+            catch (Exception ex)
+            {
+                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+            }
         }
 
         /// <summary>
@@ -73,28 +90,56 @@ namespace WebApp.ApiControllers
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> UpdateClient(Guid id, Client updatedUser)
         {
-            if (id != updatedUser.Id)
+            try
             {
-                return BadRequest();
-            }
+                if (id != updatedUser.Id)
+                {
+                    return BadRequest();
+                }
 
-            var user = await _userManager.FindByIdAsync(id.ToString());
-            if (user == null)
+                var user = await _userManager.FindByIdAsync(id.ToString());
+                if (user == null)
+                {
+                    return NotFound();
+                }
+
+                user.FirstName = updatedUser.FirstName;
+                user.LastName = updatedUser.LastName;
+                user.PersonalCode = updatedUser.PersonalCode;
+
+                var result = await _userManager.UpdateAsync(user);
+                if (!result.Succeeded)
+                {
+                    return BadRequest(result.Errors);
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
             {
-                return NotFound();
+                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
             }
-
-            user.FirstName = updatedUser.FirstName;
-            user.LastName = updatedUser.LastName;
-            user.PersonalCode = updatedUser.PersonalCode;
-
-            var result = await _userManager.UpdateAsync(user);
-            if (!result.Succeeded)
+        }
+        /// <summary>
+        /// Handles X-Road specific errors.
+        /// </summary>
+        /// <param name="exception">The exception that occurred.</param>
+        /// <param name="errorType">The type of X-Road error.</param>
+        /// <returns>An ActionResult with the error details.</returns>
+        private ActionResult HandleXRoadError(Exception exception, string errorType)
+        {
+            var errorResponse = new
             {
-                return BadRequest(result.Errors);
-            }
+                type = errorType,
+                message = exception.Message,
+                detail = Guid.NewGuid().ToString() 
+            };
 
-            return NoContent();
+            Response.ContentType = "application/json";
+            Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            Response.Headers.Append("X-Road-Error", errorType);
+
+            return new JsonResult(errorResponse);
         }
     }
 }

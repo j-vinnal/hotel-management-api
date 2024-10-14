@@ -34,13 +34,14 @@ namespace WebApp.ApiControllers
         /// <param name="bll">The business logic layer interface.</param>
         /// <param name="userManager">The user manager for handling user-related operations.</param>
         /// <param name="autoMapper">The AutoMapper instance for mapping between models.</param>
+        /// <param name="autoMapper">The AutoMapper instance for mapping between models.</param>
         public HotelsController(IAppBLL bll, UserManager<AppUser> userManager, IMapper autoMapper)
         {
             _bll = bll;
             _userManager = userManager;
             _mapper = new BllPublicMapper<App.DTO.BLL.Hotel, App.DTO.Public.v1.Hotel>(autoMapper);
         }
-        
+
         //TODO: Implement get hotel name by id
 
         /// <summary>
@@ -48,14 +49,20 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <returns>A list of hotels.</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<App.DTO.Public.v1.Hotel>>> GetHotels()
+        public async Task<ActionResult<IEnumerable<Hotel>>> GetHotels()
         {
-            var appUserId = Guid.Parse(_userManager.GetUserId(User));
-            
-            var hotels = await _bll.HotelService.GetAllAsync(appUserId);
-            var hotelDtos = hotels.Select(h => _mapper.Map(h)).ToList();
+            try
+            {
+                var appUserId = Guid.Parse(_userManager.GetUserId(User));
+                var hotels = await _bll.HotelService.GetAllAsync(appUserId);
+                var hotelDtos = hotels.Select(h => _mapper.Map(h)).ToList();
 
-            return Ok(hotelDtos);
+                return Ok(hotelDtos);
+            }
+            catch (Exception ex)
+            {
+                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+            }
         }
 
         /// <summary>
@@ -66,17 +73,22 @@ namespace WebApp.ApiControllers
         [HttpGet("{id}")]
         public async Task<ActionResult<App.DTO.Public.v1.Hotel>> GetHotel(Guid id)
         {
-            
-            var appUserId = Guid.Parse(_userManager.GetUserId(User));
-            
-            var hotel = await _bll.HotelService.FindAsync(id, appUserId);
-
-            if (hotel == null)
+            try
             {
-                return NotFound();
-            }
+                var appUserId = Guid.Parse(_userManager.GetUserId(User));
+                var hotel = await _bll.HotelService.FindAsync(id, appUserId);
 
-            return Ok(_mapper.Map(hotel));
+                if (hotel == null)
+                {
+                    return NotFound();
+                }
+
+                return Ok(_mapper.Map(hotel));
+            }
+            catch (Exception ex)
+            {
+                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+            }
         }
 
         /// <summary>
@@ -89,48 +101,54 @@ namespace WebApp.ApiControllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutHotel(Guid id, App.DTO.Public.v1.Hotel hotelDto)
         {
-            if (id != hotelDto.Id)
-            {
-                return BadRequest();
-            }
-            
-            var appUserId = Guid.Parse(_userManager.GetUserId(User));
-            
-            var existingEntity = await _bll.HotelService.FindAsync(hotelDto.Id, appUserId);
-            if (existingEntity == null)
-            {
-                return BadRequest(
-                    new RestApiErrorResponse()
-                    {
-                        Status = HttpStatusCode.BadRequest,
-                        Error = "Hotel not found." 
-                    }
-                    );
-            }
-
-            var hotel = _mapper.Map(hotelDto)!;
-            hotel.AppUserId = appUserId;
-            _bll.HotelService.Update(hotel);
-
             try
             {
-                await _bll.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!await HotelExists(id))
+                if (id != hotelDto.Id)
                 {
-                    return NotFound();
+                    return BadRequest();
                 }
-                else
-                {
-                    throw;
-                }
-            }
 
-            return NoContent();
+                var appUserId = Guid.Parse(_userManager.GetUserId(User));
+                var existingEntity = await _bll.HotelService.FindAsync(hotelDto.Id, appUserId);
+                if (existingEntity == null)
+                {
+                    return BadRequest(
+                        new RestApiErrorResponse()
+                        {
+                            Status = HttpStatusCode.BadRequest,
+                            Error = "Hotel not found."
+                        }
+                    );
+                }
+
+                var hotel = _mapper.Map(hotelDto)!;
+                hotel.AppUserId = appUserId;
+                _bll.HotelService.Update(hotel);
+
+                try
+                {
+                    await _bll.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!await HotelExists(id))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+            }
         }
-        
+
 
         /// <summary>
         /// Checks if a hotel exists.
@@ -140,6 +158,28 @@ namespace WebApp.ApiControllers
         private async Task<bool> HotelExists(Guid id)
         {
             return await _bll.HotelService.ExistsAsync(id);
+        }
+
+        /// <summary>
+        /// Handles X-Road specific errors.
+        /// </summary>
+        /// <param name="exception">The exception that occurred.</param>
+        /// <param name="errorType">The type of X-Road error.</param>
+        /// <returns>An ActionResult with the error details.</returns>
+        private ActionResult HandleXRoadError(Exception exception, string errorType)
+        {
+            var errorResponse = new
+            {
+                type = errorType,
+                message = exception.Message,
+                detail = Guid.NewGuid().ToString()
+            };
+
+            Response.ContentType = "application/json";
+            Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            Response.Headers.Add("X-Road-Error", errorType);
+
+            return new JsonResult(errorResponse);
         }
     }
 }
