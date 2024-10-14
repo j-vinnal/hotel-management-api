@@ -59,6 +59,20 @@ To get started with the project, follow these steps:
 2. Set up the database and configure the connection string.
 3. Run the application using your preferred IDE or command line.
 
+### Setting Up the Database
+
+You can use the provided `docker-compose.yaml` file to quickly set up a PostgreSQL database for the application. Ensure you have Docker and Docker Compose installed, then run the following command in the root directory of the project:
+
+```bash
+docker-compose up -d
+```
+
+This command will start a PostgreSQL container with the necessary configuration. The database will be accessible on port 5446. To stop the database, use:
+
+```bash
+docker-compose down
+```
+
 ## Contributing
 
 Contributions are welcome! Please fork the repository and submit a pull request for any enhancements or bug fixes.
@@ -134,4 +148,5 @@ dotnet aspnet-codegenerator controller -name BookingsController  -m  App.Domain.
 ~~~bash
 dotnet aspnet-codegenerator identity -dc AppDbContext --userClass App.Domain.Identity.AppUser -f
 ~~~
+
 
