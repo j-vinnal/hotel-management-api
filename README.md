@@ -14,6 +14,12 @@ This repository contains the Hotel Management API, a robust and scalable solutio
 - [Contributing](#contributing)
 - [License](#license)
 
+
+## Important Note
+
+While in-memory databases can be useful for certain backend operations, it is generally not recommended to use them for frontend applications. In-memory databases do not persist data across sessions, which can lead to data loss when the application is closed or refreshed. 
+
+
 ## Seeded Users
 
 The application comes with pre-configured users for testing purposes:
