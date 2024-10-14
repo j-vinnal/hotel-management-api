@@ -10,8 +10,23 @@ This repository contains the Hotel Management API, a robust and scalable solutio
 - [WebApp Layer](#webapp-layer)
 - [Testing](#testing)
 - [Getting Started](#getting-started)
+- [Seeded Users](#seeded-users)
 - [Contributing](#contributing)
 - [License](#license)
+
+## Seeded Users
+
+The application comes with pre-configured users for testing purposes:
+
+- **Admin User**
+  - **UserName**: `admin@hotelx.com`
+  - **Password**: `Foo.Bar1`
+
+- **Guest User**
+  - **UserName**: `guest@hotelx.com`
+  - **Password**: `Guest.Pass1`
+
+When registering a new user through the application, the user will be created with regular user privileges.
 
 ## Project Structure
 
@@ -148,5 +163,3 @@ dotnet aspnet-codegenerator controller -name BookingsController  -m  App.Domain.
 ~~~bash
 dotnet aspnet-codegenerator identity -dc AppDbContext --userClass App.Domain.Identity.AppUser -f
 ~~~
-
-
