@@ -1,6 +1,6 @@
 ﻿namespace App.Constants;
 
-public class BusinessConstants
+public static class BusinessConstants
 {
     // Booking related constants
     public const int BookingCancellationDaysLimit = 3;

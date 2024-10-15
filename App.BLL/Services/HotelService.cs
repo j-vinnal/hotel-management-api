@@ -17,5 +17,4 @@ public class HotelService : BaseEntityService<Hotel, DTO.DAL.Hotel, IHotelReposi
     {
         
     }
-    
 }

@@ -7,6 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\App.Constants\App.Constants.csproj" />
       <ProjectReference Include="..\Base.Contracts\Base.Contracts.csproj" />
       <ProjectReference Include="..\Base.Resources\Base.Resources.csproj" />
     </ItemGroup>

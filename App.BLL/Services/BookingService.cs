@@ -6,7 +6,6 @@ using App.DTO.BLL;
 using Base.BLL;
 using AutoMapper;
 
-
 namespace App.BLL.Services;
 
 public class BookingService : BaseEntityService<Booking, DTO.DAL.Booking, IBookingRepository>,
