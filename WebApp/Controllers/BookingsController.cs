@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WebApp.ViewModels;
 using Base.Helpers;
-using WebApp.Helpers;
 using Microsoft.AspNetCore.Authorization;
 
 namespace WebApp.Controllers
@@ -250,7 +249,7 @@ namespace WebApp.Controllers
             else
             {
 
-                if (CanCancelBooking(booking))
+                if (_bll.BookingService.CanCancelBooking(booking))
                 {
                     booking.IsCancelled = true;
                     _bll.BookingService.Update(booking);
@@ -269,17 +268,6 @@ namespace WebApp.Controllers
         {
             return _bll.BookingService.Exists(id);
         }
-
-        private bool CanCancelBooking(App.DTO.BLL.Booking booking)
-        {
-
-            if (User.IsInRole(RoleConstants.Admin))
-            {
-                return true;
-            }
-
-            var userId = Guid.Parse(_userManager.GetUserId(User));
-            return booking.QuestId == userId && (booking.StartDate - DateTime.UtcNow).TotalDays > BookingConstants.CancellationDaysLimit;
-        }
+        
     }
 }

@@ -6,11 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using App.Public;
 using Asp.Versioning;
 using AutoMapper;
-using Base.Helpers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using WebApp.Helpers;
-
 
 namespace WebApp.ApiControllers
 {
@@ -52,15 +49,13 @@ namespace WebApp.ApiControllers
         {
             try
             {
-                if (request.StartDate.HasValue && request.EndDate.HasValue && request.EndDate < request.StartDate)
+                if (request.StartDate.HasValue && request.EndDate.HasValue)
                 {
-                    return BadRequest(
-                        new RestApiErrorResponse()
-                        {
-                            Status = HttpStatusCode.BadRequest,
-                            Error = "End date cannot be earlier than start date."
-                        }
-                    );
+                    var validationResult = ValidateBookingDates(request.StartDate.Value, request.EndDate.Value);
+                    if (validationResult != null)
+                    {
+                        return validationResult;
+                    }
                 }
 
                 var rooms = await _bll.RoomService.GetAvailableRoomsAsync(
@@ -213,6 +208,29 @@ namespace WebApp.ApiControllers
         private async Task<bool> RoomExists(Guid id)
         {
             return await _bll.RoomService.ExistsAsync(id);
+        }
+
+        /// <summary>
+        /// Validates the booking dates to ensure the end date is not earlier than the start date.
+        /// </summary>
+        /// <param name="startDate">The start date of the booking.</param>
+        /// <param name="endDate">The end date of the booking.</param>
+        /// <returns>
+        /// A BadRequest result if the end date is earlier than the start date; otherwise, null.
+        /// </returns>
+        private ActionResult? ValidateBookingDates(DateTime startDate, DateTime endDate)
+        {
+            if (endDate < startDate)
+            {
+                return BadRequest(
+                    new RestApiErrorResponse()
+                    {
+                        Status = HttpStatusCode.BadRequest,
+                        Error = "End date cannot be earlier than start date."
+                    }
+                );
+            }
+            return null;
         }
 
         /// <summary>

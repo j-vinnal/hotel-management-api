@@ -8,4 +8,5 @@ public interface IBookingService : IBaseEntityRepository<Booking>, IBookingRepos
 {
     // Define additional methods if needed
     
+    bool CanCancelBooking(App.DTO.BLL.Booking booking);
 }

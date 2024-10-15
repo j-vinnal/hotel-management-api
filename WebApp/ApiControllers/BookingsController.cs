@@ -1,4 +1,5 @@
 using System.Net;
+using App.Constants;
 using App.Contracts.BLL;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,6 @@ using Base.Helpers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
-using WebApp.Helpers;
 
 
 namespace WebApp.ApiControllers
@@ -134,6 +134,12 @@ namespace WebApp.ApiControllers
                     return BadRequest();
                 }
 
+                var validationResult = ValidateBookingDates(bookingDto.StartDate, bookingDto.EndDate);
+                if (validationResult != null)
+                {
+                    return validationResult;
+                }
+
                 bool canBook = !await _bll.BookingService.IsRoomBookedAsync(
                     bookingDto.RoomId,
                     bookingDto.StartDate,
@@ -148,6 +154,7 @@ namespace WebApp.ApiControllers
                         {
                             Status = HttpStatusCode.BadRequest,
                             Error = $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}."
+
                         }
                     );
                 }
@@ -197,6 +204,12 @@ namespace WebApp.ApiControllers
                     bookingDto.QuestId = Guid.Parse(_userManager.GetUserId(User));
                 }
 
+                var validationResult = ValidateBookingDates(bookingDto.StartDate, bookingDto.EndDate);
+                if (validationResult != null)
+                {
+                    return validationResult;
+                }
+
                 bool canBook = !await _bll.BookingService.IsRoomBookedAsync(bookingDto.RoomId, bookingDto.StartDate, bookingDto.EndDate);
 
                 if (!canBook)
@@ -229,7 +242,6 @@ namespace WebApp.ApiControllers
         [HttpPost("{id}/cancel")]
         public async Task<IActionResult> CancelBooking(Guid id)
         {
-
             try
             {
                 var userId = Guid.Parse(_userManager.GetUserId(User));
@@ -240,7 +252,7 @@ namespace WebApp.ApiControllers
                     return NotFound();
                 }
 
-                if (CanCancelBooking(booking))
+                if (_bll.BookingService.CanCancelBooking(booking))
                 {
                     booking.IsCancelled = true;
                     _bll.BookingService.Update(booking);
@@ -252,7 +264,7 @@ namespace WebApp.ApiControllers
                     new RestApiErrorResponse()
                     {
                         Status = HttpStatusCode.Forbidden,
-                        Error = $"Booking can only be cancelled within {BookingConstants.CancellationDaysLimit} days of the start date."
+                        Error = $"Booking can only be cancelled within {BusinessConstants.BookingCancellationDaysLimit} days of the start date."
                     }
                 );
             }
@@ -300,15 +312,26 @@ namespace WebApp.ApiControllers
         }
 
         /// <summary>
-        /// Determines if the current user can cancel a booking.
+        /// Validates the booking dates to ensure the end date is not earlier than the start date.
         /// </summary>
-        /// <param name="booking">The booking to check.</param>
-        /// <returns>True if the user can cancel the booking, otherwise false.</returns>
-        private bool CanCancelBooking(App.DTO.BLL.Booking booking)
+        /// <param name="startDate">The start date of the booking.</param>
+        /// <param name="endDate">The end date of the booking.</param>
+        /// <returns>
+        /// A BadRequest result if the end date is earlier than the start date; otherwise, null.
+        /// </returns>
+        private ActionResult? ValidateBookingDates(DateTime startDate, DateTime endDate)
         {
-            DateTime dateOnly = DateTime.UtcNow.Date;
-            var canCancel = booking.StartDate.Date >= dateOnly.AddDays(BookingConstants.CancellationDaysLimit);
-            return canCancel;
+            if (endDate < startDate)
+            {
+                return BadRequest(
+                    new RestApiErrorResponse()
+                    {
+                        Status = HttpStatusCode.BadRequest,
+                        Error = "End date cannot be earlier than start date."
+                    }
+                );
+            }
+            return null;
         }
 
         /// <summary>

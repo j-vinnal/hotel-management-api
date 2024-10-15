@@ -1,3 +1,4 @@
+using App.Constants;
 using App.Contracts.BLL.Services;
 using App.Contracts.DAL;
 using App.Contracts.DAL.Repositories;
@@ -34,5 +35,11 @@ public class BookingService : BaseEntityService<Booking, DTO.DAL.Booking, IBooki
     public async Task<bool> IsRoomBookedAsync(Guid roomId, DateTime startDate, DateTime endDate, Guid? currentBookingId = null)
     {
        return await Repository.IsRoomBookedAsync(roomId, startDate, endDate, currentBookingId);
+    }
+
+    public bool CanCancelBooking(App.DTO.BLL.Booking booking)
+    {
+        var dateOnly = DateTime.UtcNow.Date;
+        return booking.StartDate.Date >= dateOnly.AddDays(BusinessConstants.BookingCancellationDaysLimit);
     }
 }

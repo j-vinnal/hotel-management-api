@@ -2,6 +2,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using App.Constants;
 using App.DAL.EF;
 using App.DTO.Public.v1;
 using App.DTO.Public.v1.Identity;
@@ -10,8 +11,6 @@ using Base.Helpers;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using NuGet.Protocol;
-using WebApp.Helpers;
 using Xunit.Abstractions;
 
 namespace App.Test.Integration.api;
@@ -131,9 +130,10 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         Assert.NotNull(booking);
 
         // Check if the booking is within the allowed cancellation period
-        var daysDifference = (DateTime.UtcNow.Date - booking.StartDate.Date).TotalDays;
-       
-        Assert.True(daysDifference > BookingConstants.CancellationDaysLimit);
+        var dateOnly = DateTime.UtcNow.Date;
+        var canCancel = booking.StartDate.Date >= dateOnly.AddDays(BusinessConstants.BookingCancellationDaysLimit);
+        
+        Assert.True(canCancel);
         
         // Act: Cancel the booking
         var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1.0/Bookings/{bookingId}/cancel");
@@ -163,8 +163,10 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         Assert.NotNull(booking);
 
         // Check if the booking is within the allowed cancellation period
-        var daysDifference = (DateTime.UtcNow.Date - booking.StartDate.Date).TotalDays;
-        Assert.True(daysDifference > BookingConstants.CancellationDaysLimit);
+        var dateOnly = DateTime.UtcNow.Date;
+        var canCancel = booking.StartDate.Date >= dateOnly.AddDays(BusinessConstants.BookingCancellationDaysLimit);
+        
+        Assert.True(canCancel);
 
         // Map the booking entity to the DTO
         var bookingDto = mapper.Map<App.DTO.Public.v1.Booking>(booking);
@@ -206,8 +208,10 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         Assert.NotNull(booking);
 
         // Check if the booking is within the allowed cancellation period
-        var daysDifference = (DateTime.UtcNow.Date - booking.StartDate.Date).TotalDays;
-         Assert.True(daysDifference <= BookingConstants.CancellationDaysLimit);
+        var dateOnly = DateTime.UtcNow.Date;
+        var canCancel = booking.StartDate.Date >= dateOnly.AddDays(BusinessConstants.BookingCancellationDaysLimit);
+        
+        Assert.True(canCancel);
         
         // Act: Cancel the booking
         var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1.0/bookings/{bookingId}/cancel");
