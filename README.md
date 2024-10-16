@@ -8,23 +8,45 @@ This repository contains the Hotel Management API, a robust and scalable solutio
 - [Base Layer](#base-layer)
 - [App Layer](#app-layer)
 - [WebApp Layer](#webapp-layer)
+- [X-Road Protocol Implementation](#x-road-protocol-implementation)
 - [Testing](#testing)
 - [Getting Started](#getting-started)
 - [Seeded Users](#seeded-users)
 - [Contributing](#contributing)
 - [License](#license)
 
+## X-Road Protocol Implementation
 
-## Important Note
+The API has been enhanced with X-Road protocol support, which includes the following features:
 
-While in-memory databases can be useful for certain backend operations, it is generally not recommended to use them for frontend applications. In-memory databases do not persist data across sessions, which can lead to data loss when the application is closed or refreshed. 
+- **Request Header Validation**: The `X-Road-Client` header is checked for presence in incoming requests. If missing, a `BadRequest` response is returned. This is implemented in the `XRoadHeaderFilter` class.
 
+  - Relevant Code: `XRoadHeaderFilter.cs` (startLine: 10, endLine: 18)
+
+- **Response Headers**: The API adds several X-Road specific headers to the response:
+
+  - `X-Road-Service`: Indicates the service being accessed, configured via the `XRoadServiceAttribute`.
+  - `X-Road-Id`: A unique identifier for the request.
+  - `X-Road-Request-Hash`: A hash of the request for integrity verification.
+  - Relevant Code: `XRoadHeaderFilter.cs` (startLine: 20, endLine: 35)
+
+- **Centralized Error Handling**: Custom exceptions like `BadRequestException` and `NotFoundException` are used to handle errors gracefully. The `XRoadExceptionFilter` ensures that errors are returned with a consistent structure, including an `X-Road-Error` header.
+
+  - Relevant Code: `XRoadExceptionFilter.cs` (startLine: 10, endLine: 43), `BadRequestException.cs` (startLine: 1, endLine: 6), `NotFoundException.cs` (startLine: 1, endLine: 6)
+
+- **Endpoint-Specific Configuration**: The `XRoadServiceAttribute` allows for endpoint-specific configuration, specifying the service details for each API endpoint.
+
+  - Relevant Code: `XRoadServiceAttribute.cs` (startLine: 1, endLine: 12)
+
+- **API Controllers**: The logic for handling X-Road headers and errors is integrated into the API controllers, ensuring that all endpoints comply with the X-Road protocol.
+  - Relevant Code: `BookingsController.cs`, `HotelsController.cs`, `RoomsController.cs`, `AccountController.cs`, `ClientsController.cs`
 
 ## Seeded Users
 
 The application comes with pre-configured users for testing purposes:
 
 - **Admin User**
+
   - **UserName**: `admin@hotelx.com`
   - **Password**: `Foo.Bar1`
 
@@ -100,72 +122,68 @@ Contributions are welcome! Please fork the repository and submit a pull request 
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.   
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-
-
-
-## Useful commands in .net console CLI   
+## Useful commands in .net console CLI
 
 Install/update tooling
 
-~~~bash
+```bash
 dotnet tool update -g dotnet-ef
-~~~
+```
 
-~~~bash
-dotnet tool update -g dotnet-aspnet-codegenerator 
-~~~
+```bash
+dotnet tool update -g dotnet-aspnet-codegenerator
+```
 
 ## EF Core migrations
 
 Run from solution folder
 
-~~~bash
+```bash
 dotnet ef migrations --project App.DAL.EF --startup-project WebApp add First-Db
-~~~
-~~~bash
-dotnet ef database   --project App.DAL.EF --startup-project WebApp update
-~~~
-~~~bash
-dotnet ef database   --project App.DAL.EF --startup-project WebApp drop
-~~~
+```
 
+```bash
+dotnet ef database   --project App.DAL.EF --startup-project WebApp update
+```
+
+```bash
+dotnet ef database   --project App.DAL.EF --startup-project WebApp drop
+```
 
 ## MVC controllers
 
 These controllers are generated for quick testing of the data model.
 
 Install from nuget:
+
 - Microsoft.VisualStudio.Web.CodeGeneration.Design
 - Microsoft.EntityFrameworkCore.SqlServer
 
-
 Run from WebApp folder!
 
-~~~bash
+```bash
 
 dotnet aspnet-codegenerator controller -name HotelsController   -actions -m  App.Domain.Hotel       -dc AppDbContext -outDir Controllers --useDefaultLayout --useAsyncActions --referenceScriptLibraries -f
 
 dotnet aspnet-codegenerator controller -name RoomsController    -actions -m  App.Domain.Room        -dc AppDbContext -outDir Controllers --useDefaultLayout --useAsyncActions --referenceScriptLibraries -f
 
 dotnet aspnet-codegenerator controller -name BookingsController  -actions -m  App.Domain.Booking     -dc AppDbContext -outDir Controllers --useDefaultLayout --useAsyncActions --referenceScriptLibraries -f
-~~~
-
+```
 
 ## Api controllers
-~~~bash
+
+```bash
 dotnet aspnet-codegenerator controller -name HotelsController    -m  App.Domain.Hotel       -dc AppDbContext -outDir ApiControllers -api --useAsyncActions -f
 
 dotnet aspnet-codegenerator controller -name RoomsController     -m  App.Domain.Room        -dc AppDbContext -outDir ApiControllers -api --useAsyncActions -f
 
 dotnet aspnet-codegenerator controller -name BookingsController  -m  App.Domain.Booking     -dc AppDbContext -outDir ApiControllers -api --useAsyncActions -f
-~~~
-
-
+```
 
 ## Generate Identity UI
 
-~~~bash
+```bash
 dotnet aspnet-codegenerator identity -dc AppDbContext --userClass App.Domain.Identity.AppUser -f
-~~~
+```

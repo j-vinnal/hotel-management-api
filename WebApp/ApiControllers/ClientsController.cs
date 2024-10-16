@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using WebApp.Exceptions;
 
 namespace WebApp.ApiControllers
 {
@@ -40,6 +41,7 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <returns>A list of clients.</returns>
         [HttpGet]
+        [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/ClientService/GetClients")]
         public async Task<ActionResult<IEnumerable<Client>>> GetClients()
         {
             try
@@ -60,15 +62,13 @@ namespace WebApp.ApiControllers
         /// <param name="id">The ID of the client to retrieve.</param>
         /// <returns>The client with the specified ID.</returns>
         [HttpGet("{id:guid}")]
+        [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/ClientService/GetClient")]
         public async Task<ActionResult<Client>> GetClient(Guid id)
         {
             try
             {
-                var user = await _userManager.FindByIdAsync(id.ToString());
-                if (user == null)
-                {
-                    return NotFound();
-                }
+                var user =
+                    await _userManager.FindByIdAsync(id.ToString()) ?? throw new NotFoundException("Client not found");
                 var client = _mapper.Map(user);
                 return Ok(client);
             }
@@ -85,20 +85,18 @@ namespace WebApp.ApiControllers
         /// <param name="updatedUser">The updated client information.</param>
         /// <returns>No content if the update is successful.</returns>
         [HttpPut("{id:guid}")]
+        [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/ClientService/UpdateClient")]
         public async Task<IActionResult> UpdateClient(Guid id, Client updatedUser)
         {
             try
             {
                 if (id != updatedUser.Id)
                 {
-                    return BadRequest();
+                    throw new BadRequestException("Client ID does not match the ID in the request.");
                 }
 
-                var user = await _userManager.FindByIdAsync(id.ToString());
-                if (user == null)
-                {
-                    return NotFound();
-                }
+                var user =
+                    await _userManager.FindByIdAsync(id.ToString()) ?? throw new NotFoundException("Client not found");
 
                 user.FirstName = updatedUser.FirstName;
                 user.LastName = updatedUser.LastName;
@@ -107,7 +105,7 @@ namespace WebApp.ApiControllers
                 var result = await _userManager.UpdateAsync(user);
                 if (!result.Succeeded)
                 {
-                    return BadRequest(result.Errors);
+                    throw new BadRequestException("Failed to update client information.");
                 }
 
                 return NoContent();
@@ -124,7 +122,7 @@ namespace WebApp.ApiControllers
         /// <param name="exception">The exception that occurred.</param>
         /// <param name="errorType">The type of X-Road error.</param>
         /// <returns>An ActionResult with the error details.</returns>
-        private ActionResult HandleXRoadError(Exception exception, string errorType)
+        private JsonResult HandleXRoadError(Exception exception, string errorType)
         {
             var errorResponse = new
             {

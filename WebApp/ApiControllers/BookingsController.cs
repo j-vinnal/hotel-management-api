@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using WebApp.Exceptions;
 
 namespace WebApp.ApiControllers
 {
@@ -45,23 +46,21 @@ namespace WebApp.ApiControllers
         /// Gets all bookings.
         /// </summary>
         /// <param name="viewAll">
-        /// A boolean parameter used by users with the Admin role. 
-        /// If set to false, the user will only see their personal bookings. 
+        /// A boolean parameter used by users with the Admin role.
+        /// If set to false, the user will only see their personal bookings.
         /// If true, the user will see all bookings.
         /// </param>
         /// <returns>A list of bookings.</returns>
         [HttpGet]
+        [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/GetBookings")]
         public async Task<ActionResult<IEnumerable<Booking>>> GetBookings(bool viewAll = true)
         {
             try
             {
                 IEnumerable<App.DTO.BLL.Booking> bookings;
 
-                var userIdStr = _userManager.GetUserId(User);
-                if (userIdStr == null)
-                {
-                    return BadRequest("User ID is not available.");
-                }
+                var userIdStr =
+                    _userManager.GetUserId(User) ?? throw new BadRequestException("User ID is not available.");
 
                 var userId = Guid.Parse(userIdStr);
 
@@ -96,6 +95,7 @@ namespace WebApp.ApiControllers
         /// <param name="id">The ID of the booking.</param>
         /// <returns>The booking with the specified ID.</returns>
         [HttpGet("{id:guid}")]
+        [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/GetBooking")]
         public async Task<ActionResult<Booking>> GetBooking(Guid id)
         {
             try
@@ -108,19 +108,17 @@ namespace WebApp.ApiControllers
                 }
                 else
                 {
-                    var userIdStr = _userManager.GetUserId(User);
-                    if (userIdStr == null)
-                    {
-                        return BadRequest("User ID is not available.");
-                    }
+                    var userIdStr =
+                        _userManager.GetUserId(User) ?? throw new BadRequestException("User ID is not available.");
 
                     var userId = Guid.Parse(userIdStr);
+
                     booking = await _bll.BookingService.FindWithDetailsAsync(id, userId);
                 }
 
                 if (booking == null)
                 {
-                    return NotFound();
+                    throw new NotFoundException("Booking not found");
                 }
 
                 return Ok(_mapper.Map(booking));
@@ -139,20 +137,17 @@ namespace WebApp.ApiControllers
         /// <returns>No content if successful, or a bad request if the room is already booked for the selected dates.</returns>
         [Authorize(Roles = RoleConstants.Admin)]
         [HttpPut("{id:guid}")]
+        [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/PutBooking")]
         public async Task<IActionResult> PutBooking(Guid id, Booking bookingDto)
         {
             try
             {
                 if (id != bookingDto.Id)
                 {
-                    return BadRequest();
+                    throw new BadRequestException("Booking ID does not match the ID in the request.");
                 }
 
-                var validationResult = ValidateBookingDates(bookingDto.StartDate, bookingDto.EndDate);
-                if (validationResult != null)
-                {
-                    return validationResult;
-                }
+                ValidateBookingDates(bookingDto.StartDate, bookingDto.EndDate);
 
                 bool canBook = !await _bll.BookingService.IsRoomBookedAsync(
                     bookingDto.RoomId,
@@ -163,13 +158,8 @@ namespace WebApp.ApiControllers
 
                 if (!canBook)
                 {
-                    return BadRequest(
-                        new RestApiErrorResponse()
-                        {
-                            Status = HttpStatusCode.BadRequest,
-                            Error =
-                                $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}.",
-                        }
+                    throw new BadRequestException(
+                        $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}."
                     );
                 }
 
@@ -184,7 +174,7 @@ namespace WebApp.ApiControllers
                 {
                     if (!await BookingExists(id))
                     {
-                        return NotFound();
+                        throw new NotFoundException("Booking not found");
                     }
                     else
                     {
@@ -209,26 +199,20 @@ namespace WebApp.ApiControllers
         /// Returns a bad request if the room is already booked for the selected dates.
         /// </returns>
         [HttpPost]
+        [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/PostBooking")]
         public async Task<ActionResult<Booking>> PostBooking(Booking bookingDto)
         {
             try
             {
                 if (!User.IsInRole(RoleConstants.Admin))
                 {
-                    var userIdStr = _userManager.GetUserId(User);
-                    if (userIdStr == null)
-                    {
-                        return BadRequest("User ID is not available.");
-                    }
+                    var userIdStr =
+                        _userManager.GetUserId(User) ?? throw new BadRequestException("User ID is not available.");
 
                     bookingDto.QuestId = Guid.Parse(userIdStr);
                 }
 
-                var validationResult = ValidateBookingDates(bookingDto.StartDate, bookingDto.EndDate);
-                if (validationResult != null)
-                {
-                    return validationResult;
-                }
+                ValidateBookingDates(bookingDto.StartDate, bookingDto.EndDate);
 
                 bool canBook = !await _bll.BookingService.IsRoomBookedAsync(
                     bookingDto.RoomId,
@@ -238,13 +222,8 @@ namespace WebApp.ApiControllers
 
                 if (!canBook)
                 {
-                    return BadRequest(
-                        new RestApiErrorResponse()
-                        {
-                            Status = HttpStatusCode.BadRequest,
-                            Error =
-                                $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}.",
-                        }
+                    throw new BadRequestException(
+                        $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}."
                     );
                 }
 
@@ -266,15 +245,13 @@ namespace WebApp.ApiControllers
         /// <param name="id">The ID of the booking to cancel.</param>
         /// <returns>No content if successful, or a forbidden status if not allowed.</returns>
         [HttpPost("{id:guid}/cancel")]
+        [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/CancelBooking")]
         public async Task<IActionResult> CancelBooking(Guid id)
         {
             try
             {
-                var userIdStr = _userManager.GetUserId(User);
-                if (userIdStr == null)
-                {
-                    return BadRequest("User ID is not available.");
-                }
+                var userIdStr =
+                    _userManager.GetUserId(User) ?? throw new BadRequestException("User ID is not available.");
 
                 var userId = Guid.Parse(userIdStr);
 
@@ -282,7 +259,7 @@ namespace WebApp.ApiControllers
 
                 if (booking == null)
                 {
-                    return NotFound();
+                    throw new NotFoundException("Booking not found");
                 }
 
                 if (_bll.BookingService.CanCancelBooking(booking))
@@ -290,16 +267,11 @@ namespace WebApp.ApiControllers
                     booking.IsCancelled = true;
                     _bll.BookingService.Update(booking);
                     await _bll.SaveChangesAsync();
+
                     return NoContent();
                 }
-
-                return BadRequest(
-                    new RestApiErrorResponse()
-                    {
-                        Status = HttpStatusCode.Forbidden,
-                        Error =
-                            $"Booking can only be cancelled within {BusinessConstants.BookingCancellationDaysLimit} days of the start date.",
-                    }
+                throw new BadRequestException(
+                    $"Booking can only be cancelled within {BusinessConstants.BookingCancellationDaysLimit} days of the start date."
                 );
             }
             catch (Exception ex)
@@ -315,6 +287,7 @@ namespace WebApp.ApiControllers
         /// <returns>No content if successful.</returns>
         [Authorize(Roles = RoleConstants.Admin)]
         [HttpDelete("{id:guid}")]
+        [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/DeleteBooking")]
         public async Task<IActionResult> DeleteBooking(Guid id)
         {
             try
@@ -322,7 +295,7 @@ namespace WebApp.ApiControllers
                 var booking = await _bll.BookingService.FindAsync(id);
                 if (booking == null)
                 {
-                    return NotFound();
+                    throw new NotFoundException("Booking not found");
                 }
 
                 _bll.BookingService.Remove(booking);
@@ -350,22 +323,12 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="startDate">The start date of the booking.</param>
         /// <param name="endDate">The end date of the booking.</param>
-        /// <returns>
-        /// A BadRequest result if the end date is earlier than the start date; otherwise, null.
-        /// </returns>
-        private ActionResult? ValidateBookingDates(DateTime startDate, DateTime endDate)
+        private static void ValidateBookingDates(DateTime startDate, DateTime endDate)
         {
             if (endDate < startDate)
             {
-                return BadRequest(
-                    new RestApiErrorResponse()
-                    {
-                        Status = HttpStatusCode.BadRequest,
-                        Error = "End date cannot be earlier than start date.",
-                    }
-                );
+                throw new BadRequestException("End date cannot be earlier than start date.");
             }
-            return null;
         }
 
         /// <summary>
@@ -374,7 +337,7 @@ namespace WebApp.ApiControllers
         /// <param name="exception">The exception that occurred.</param>
         /// <param name="errorType">The type of X-Road error.</param>
         /// <returns>An ActionResult with the error details.</returns>
-        private ActionResult HandleXRoadError(Exception exception, string errorType)
+        private JsonResult HandleXRoadError(Exception exception, string errorType)
         {
             var errorResponse = new
             {

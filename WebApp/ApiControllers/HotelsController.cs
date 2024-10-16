@@ -5,12 +5,12 @@ using App.DTO.Public.v1;
 using App.Public;
 using Asp.Versioning;
 using AutoMapper;
-using Base.Helpers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using WebApp.Exceptions;
 
 namespace WebApp.ApiControllers
 {
@@ -41,23 +41,18 @@ namespace WebApp.ApiControllers
             _mapper = new BllPublicMapper<App.DTO.BLL.Hotel, Hotel>(autoMapper);
         }
 
-        //TODO: Implement get hotel name by id
-
         /// <summary>
         /// Gets all hotels.
         /// </summary>
         /// <returns>A list of hotels.</returns>
         [HttpGet]
+        [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/HotelService/GetHotels")]
         public async Task<ActionResult<IEnumerable<Hotel>>> GetHotels()
         {
             try
             {
-                var userIdStr = _userManager.GetUserId(User);
-                if (userIdStr == null)
-                {
-                    return BadRequest("User ID is not available.");
-                }
-
+                var userIdStr =
+                    _userManager.GetUserId(User) ?? throw new BadRequestException("User ID is not available.");
                 var userId = Guid.Parse(userIdStr);
 
                 var hotels = await _bll.HotelService.GetAllAsync(userId);
@@ -77,24 +72,17 @@ namespace WebApp.ApiControllers
         /// <param name="id">The ID of the hotel.</param>
         /// <returns>The hotel with the specified ID.</returns>
         [HttpGet("{id:guid}")]
+        [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/HotelService/GetHotel")]
         public async Task<ActionResult<Hotel>> GetHotel(Guid id)
         {
             try
             {
-                var userIdStr = _userManager.GetUserId(User);
-                if (userIdStr == null)
-                {
-                    return BadRequest("User ID is not available.");
-                }
-
+                var userIdStr =
+                    _userManager.GetUserId(User) ?? throw new BadRequestException("User ID is not available.");
                 var userId = Guid.Parse(userIdStr);
 
-                var hotel = await _bll.HotelService.FindAsync(id, userId);
-
-                if (hotel == null)
-                {
-                    return NotFound();
-                }
+                var hotel =
+                    await _bll.HotelService.FindAsync(id, userId) ?? throw new NotFoundException("Hotel not found");
 
                 return Ok(_mapper.Map(hotel));
             }
@@ -110,32 +98,25 @@ namespace WebApp.ApiControllers
         /// <param name="id">The ID of the hotel to update.</param>
         /// <param name="hotelDto">The updated hotel data, including name, location, and other relevant details.</param>
         /// <returns>No content if the update is successful; otherwise, a BadRequest or NotFound result.</returns>
-        [Authorize(Roles = RoleConstants.Admin)]
+
         [HttpPut("{id:guid}")]
+        [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/HotelService/PutHotel")]
         public async Task<IActionResult> PutHotel(Guid id, Hotel hotelDto)
         {
             try
             {
                 if (id != hotelDto.Id)
                 {
-                    return BadRequest();
+                    throw new BadRequestException("Hotel ID does not match the ID in the request.");
                 }
 
-                var userIdStr = _userManager.GetUserId(User);
-                if (userIdStr == null)
-                {
-                    return BadRequest("User ID is not available.");
-                }
-
+                var userIdStr =
+                    _userManager.GetUserId(User) ?? throw new BadRequestException("User ID is not available.");
                 var userId = Guid.Parse(userIdStr);
 
-                var existingEntity = await _bll.HotelService.FindAsync(hotelDto.Id, userId);
-                if (existingEntity == null)
-                {
-                    return BadRequest(
-                        new RestApiErrorResponse() { Status = HttpStatusCode.BadRequest, Error = "Hotel not found." }
-                    );
-                }
+                var existingEntity =
+                    await _bll.HotelService.FindAsync(hotelDto.Id, userId)
+                    ?? throw new NotFoundException("Hotel not found");
 
                 var hotel = _mapper.Map(hotelDto)!;
                 hotel.AppUserId = userId;
@@ -149,7 +130,7 @@ namespace WebApp.ApiControllers
                 {
                     if (!await HotelExists(id))
                     {
-                        return NotFound();
+                        throw new NotFoundException("Hotel not found");
                     }
                     else
                     {
@@ -181,7 +162,7 @@ namespace WebApp.ApiControllers
         /// <param name="exception">The exception that occurred.</param>
         /// <param name="errorType">The type of X-Road error.</param>
         /// <returns>An ActionResult with the error details.</returns>
-        private ActionResult HandleXRoadError(Exception exception, string errorType)
+        private JsonResult HandleXRoadError(Exception exception, string errorType)
         {
             var errorResponse = new
             {

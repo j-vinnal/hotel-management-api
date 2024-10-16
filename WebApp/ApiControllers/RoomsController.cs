@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using WebApp.Exceptions;
 
 namespace WebApp.ApiControllers
 {
@@ -44,6 +45,7 @@ namespace WebApp.ApiControllers
         /// <response code="400">If the end date is earlier than the start date.</response>
         [HttpGet]
         [AllowAnonymous]
+        [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/RoomService/GetRooms")]
         public async Task<ActionResult<IEnumerable<Room>>> GetRooms([FromQuery] RoomAvailabilityRequest request)
         {
             try
@@ -51,25 +53,15 @@ namespace WebApp.ApiControllers
                 // Validate that both startDate and endDate are either both provided or both omitted
                 if (
                     request is { StartDate: not null, EndDate: null }
-                    || (!request.StartDate.HasValue && request.EndDate.HasValue)
+                    || request is { StartDate: null, EndDate: not null }
                 )
                 {
-                    return BadRequest(
-                        new RestApiErrorResponse()
-                        {
-                            Status = HttpStatusCode.BadRequest,
-                            Error = "Both startDate and endDate must be provided or not provided.",
-                        }
-                    );
+                    throw new BadRequestException("Both startDate and endDate must be provided or not provided.");
                 }
 
                 if (request is { StartDate: not null, EndDate: not null })
                 {
-                    var validationResult = ValidateBookingDates(request.StartDate.Value, request.EndDate.Value);
-                    if (validationResult != null)
-                    {
-                        return validationResult;
-                    }
+                    ValidateBookingDates(request.StartDate.Value, request.EndDate.Value);
                 }
 
                 var rooms = await _bll.RoomService.GetAvailableRoomsAsync(
@@ -95,16 +87,12 @@ namespace WebApp.ApiControllers
         /// <returns>The room with the specified ID.</returns>
         [HttpGet("{id:guid}")]
         [AllowAnonymous]
+        [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/RoomService/GetRoom")]
         public async Task<ActionResult<Room>> GetRoom(Guid id)
         {
             try
             {
-                var room = await _bll.RoomService.FindAsync(id);
-
-                if (room == null)
-                {
-                    return NotFound();
-                }
+                var room = await _bll.RoomService.FindAsync(id) ?? throw new NotFoundException("Room not found");
 
                 return Ok(_mapper.Map(room));
             }
@@ -121,15 +109,14 @@ namespace WebApp.ApiControllers
         /// <param name="roomDto">The updated room data.</param>
         /// <returns>No content if successful.</returns>
         [HttpPut("{id}")]
+        [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/RoomService/PutRoom")]
         public async Task<IActionResult> PutRoom(Guid id, Room roomDto)
         {
             try
             {
                 if (id != roomDto.Id)
                 {
-                    return BadRequest(
-                        new RestApiErrorResponse() { Status = HttpStatusCode.BadRequest, Error = "Room not found" }
-                    );
+                    throw new BadRequestException("Room ID does not match the ID in the request.");
                 }
 
                 var room = _mapper.Map(roomDto)!;
@@ -143,7 +130,7 @@ namespace WebApp.ApiControllers
                 {
                     if (!await RoomExists(id))
                     {
-                        return NotFound();
+                        throw new NotFoundException("Room not found");
                     }
                     else
                     {
@@ -165,6 +152,7 @@ namespace WebApp.ApiControllers
         /// <param name="roomDto">The room data to create.</param>
         /// <returns>The created room.</returns>
         [HttpPost]
+        [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/RoomService/PostRoom")]
         public async Task<ActionResult<Room>> PostRoom(Room roomDto)
         {
             try
@@ -187,6 +175,7 @@ namespace WebApp.ApiControllers
         /// <param name="id">The ID of the room to delete.</param>
         /// <returns>No content if successful.</returns>
         [HttpDelete("{id:guid}")]
+        [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/RoomService/DeleteRoom")]
         public async Task<IActionResult> DeleteRoom(Guid id)
         {
             try
@@ -194,7 +183,7 @@ namespace WebApp.ApiControllers
                 var room = await _bll.RoomService.FindAsync(id);
                 if (room == null)
                 {
-                    return NotFound();
+                    throw new NotFoundException("Room not found");
                 }
 
                 _bll.RoomService.Remove(room);
@@ -223,22 +212,12 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="startDate">The start date of the booking.</param>
         /// <param name="endDate">The end date of the booking.</param>
-        /// <returns>
-        /// A BadRequest result if the end date is earlier than the start date; otherwise, null.
-        /// </returns>
-        private ActionResult? ValidateBookingDates(DateTime startDate, DateTime endDate)
+        private static void ValidateBookingDates(DateTime startDate, DateTime endDate)
         {
             if (endDate < startDate)
             {
-                return BadRequest(
-                    new RestApiErrorResponse()
-                    {
-                        Status = HttpStatusCode.BadRequest,
-                        Error = "End date cannot be earlier than start date.",
-                    }
-                );
+                throw new BadRequestException("End date cannot be earlier than start date.");
             }
-            return null;
         }
 
         /// <summary>
@@ -247,7 +226,7 @@ namespace WebApp.ApiControllers
         /// <param name="exception">The exception that occurred.</param>
         /// <param name="errorType">The type of X-Road error.</param>
         /// <returns>An ActionResult with the error details.</returns>
-        private ActionResult HandleXRoadError(Exception exception, string errorType)
+        private JsonResult HandleXRoadError(Exception exception, string errorType)
         {
             var errorResponse = new
             {

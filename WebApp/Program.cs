@@ -20,13 +20,19 @@ using WebApp;
 using AutoMapperProfile = App.DAL.EF.AutoMapperProfile;
 using App.DTO.Public.v1;
 using Microsoft.AspNetCore.Mvc;
+using WebApp.Filters;
 using WebApp.Middleware;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-//builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    // Add the XRoadHeaderFilter globally
+    options.Filters.Add<XRoadHeaderFilter>();
+    options.Filters.Add<XRoadExceptionFilter>(); 
+});
 
 // Add services to the container.
 var useInMemory = builder.Configuration.GetValue<bool>("Database:UseInMemory");
@@ -201,22 +207,15 @@ else
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+app.UseMiddleware<XRoadClientHeaderMiddleware>();
+
 app.UseRouting();
-
-
-
-
-//Gives CORS error
-//app.UseMiddleware<XRoadHeaderMiddleware>();
 
 app.UseAuthorization();
 
 app.UseCors("CorsAllowAll");
 
-
 app.UseMiddleware<DateTimeMiddleware>();
-// Register the X-Road error handling middleware and 
-app.UseMiddleware<XRoadErrorHandlingMiddleware>();
 
 app.UseRequestLocalization(options:
     app.Services.GetService<IOptions<RequestLocalizationOptions>>()?.Value!
