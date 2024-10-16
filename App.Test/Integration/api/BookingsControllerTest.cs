@@ -8,11 +8,11 @@ using App.DTO.Public.v1;
 using App.DTO.Public.v1.Identity;
 using AutoMapper;
 using Base.Helpers;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
-using Microsoft.AspNetCore.Hosting;
 
 namespace App.Test.Integration.api;
 
@@ -32,10 +32,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
     public BookingsControllerTest(CustomWebApplicationFactory<Program> factory, ITestOutputHelper testOutputHelper)
     {
         _factory = factory;
-        _client = _factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false
-        });
+        _client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         _testOutputHelper = testOutputHelper;
     }
 
@@ -52,7 +49,10 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
     public async Task IndexWithAdminUser()
     {
         // get jwt
-        var response = await _client.PostAsJsonAsync("/api/v1.0/identity/Account/Login", new { email = AdminEmail, password = AdminPassword });
+        var response = await _client.PostAsJsonAsync(
+            "/api/v1.0/identity/Account/Login",
+            new { email = AdminEmail, password = AdminPassword }
+        );
         var contentStr = await response.Content.ReadAsStringAsync();
 
         response.EnsureSuccessStatusCode();
@@ -76,7 +76,10 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
     public async Task IndexWithGuestUser()
     {
         // get jwt
-        var response = await _client.PostAsJsonAsync("/api/v1.0/identity/Account/Login", new { email = GuestEmail, password = GuestPassword });
+        var response = await _client.PostAsJsonAsync(
+            "/api/v1.0/identity/Account/Login",
+            new { email = GuestEmail, password = GuestPassword }
+        );
         var contentStr = await response.Content.ReadAsStringAsync();
 
         response.EnsureSuccessStatusCode();
@@ -114,7 +117,10 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
 
         // Get the expected count from the JSON file
         var expectedCount = GetBookingCountFromJson();
-        Assert.True(bookings.Count >= expectedCount, $"Expected at least {expectedCount} bookings, but got {bookings.Count}.");
+        Assert.True(
+            bookings.Count >= expectedCount,
+            $"Expected at least {expectedCount} bookings, but got {bookings.Count}."
+        );
     }
 
     [Theory]
@@ -139,7 +145,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
             AppUserId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7b"),
             StartDate = DateTime.UtcNow.AddDays(daysToAdd),
             EndDate = DateTime.UtcNow.AddDays(daysToAdd + 10),
-            IsCancelled = false
+            IsCancelled = false,
         };
 
         Assert.True(booking.StartDate < DateTime.UtcNow.AddDays(BusinessConstants.BookingCancellationDaysLimit));
@@ -178,7 +184,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
             AppUserId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7b"),
             StartDate = DateTime.UtcNow.Date.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit),
             EndDate = DateTime.UtcNow.Date.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit + 10),
-            IsCancelled = false
+            IsCancelled = false,
         };
 
         _testOutputHelper.WriteLine($"Booking Start Date: {booking.StartDate}");
@@ -220,7 +226,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
             AppUserId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7a"),
             StartDate = DateTime.UtcNow.Date.AddDays(BusinessConstants.BookingCancellationDaysLimit - daysToAdd),
             EndDate = DateTime.UtcNow.Date.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit + 11),
-            IsCancelled = false
+            IsCancelled = false,
         };
 
         _testOutputHelper.WriteLine($"Booking Start Date: {booking.StartDate}");
@@ -242,7 +248,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         // Act: Update the booking to set IsCancelled = true
         var request = new HttpRequestMessage(HttpMethod.Put, $"/api/v1.0/bookings/{booking.Id}")
         {
-            Content = JsonContent.Create(bookingDto)
+            Content = JsonContent.Create(bookingDto),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
 
@@ -251,7 +257,6 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         // Assert: Check response
         response.EnsureSuccessStatusCode();
     }
-
 
     [Theory]
     [InlineData(1)]
@@ -275,7 +280,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
             AppUserId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7a"),
             StartDate = DateTime.UtcNow.Date.AddDays(BusinessConstants.BookingCancellationDaysLimit - daysToAdd),
             EndDate = DateTime.UtcNow.Date.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit + 11),
-            IsCancelled = false
+            IsCancelled = false,
         };
 
         _testOutputHelper.WriteLine($"Booking Start Date: {booking.StartDate}");
@@ -297,7 +302,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         // Act: Update the booking to set IsCancelled = true
         var request = new HttpRequestMessage(HttpMethod.Put, $"/api/v1.0/bookings/{booking.Id}")
         {
-            Content = JsonContent.Create(bookingDto)
+            Content = JsonContent.Create(bookingDto),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
 
@@ -306,7 +311,6 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         // Assert: Check response
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
-
 
     [Fact]
     public async Task GuestCanBookFreeRoomForSpecifiedPeriod()
@@ -326,7 +330,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
             RoomName = "Test Room",
             BedCount = 1,
             Price = 100,
-            HotelId = Guid.Parse("5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b")
+            HotelId = Guid.Parse("5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"),
         };
 
         // Add the room to the database
@@ -338,9 +342,9 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         var endDate = DateTime.UtcNow.AddDays(350).Date;
 
         // Ensure the room is free for the specified period
-        var isRoomBooked = await dbContext.Bookings.AnyAsync(b => b.RoomId == room.Id &&
-                                                              !b.IsCancelled &&
-                                                              b.StartDate.Date <= endDate && startDate <= b.EndDate.Date);
+        var isRoomBooked = await dbContext.Bookings.AnyAsync(b =>
+            b.RoomId == room.Id && !b.IsCancelled && b.StartDate.Date <= endDate && startDate <= b.EndDate.Date
+        );
 
         Assert.False(isRoomBooked, "Room is already booked for the specified period.");
 
@@ -350,13 +354,13 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
             RoomId = room.Id,
             StartDate = startDate,
             EndDate = endDate,
-            QuestId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7b")
+            QuestId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7b"),
         };
 
         // Act: Book the room
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1.0/Bookings")
         {
-            Content = JsonContent.Create(bookingDto)
+            Content = JsonContent.Create(bookingDto),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
         var response = await _client.SendAsync(request);
@@ -388,7 +392,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
             RoomName = "Test Room for Double Booking",
             BedCount = 1,
             Price = 100,
-            HotelId = Guid.Parse("5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b")
+            HotelId = Guid.Parse("5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"),
         };
 
         // Add the room to the database
@@ -406,7 +410,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
             AppUserId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7b"),
             StartDate = startDate,
             EndDate = endDate,
-            IsCancelled = false
+            IsCancelled = false,
         };
 
         // Add the first booking to the database
@@ -419,13 +423,13 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
             RoomId = room.Id,
             StartDate = startDate.AddDays(2), // Overlapping period
             EndDate = endDate.AddDays(2),
-            QuestId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7b")
+            QuestId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7b"),
         };
 
         // Act: Try to book the room again
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1.0/Bookings")
         {
-            Content = JsonContent.Create(secondBookingDto)
+            Content = JsonContent.Create(secondBookingDto),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
         var response = await _client.SendAsync(request);
@@ -450,14 +454,18 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         return loginData.Jwt;
     }
 
-
     private int GetBookingCountFromJson()
     {
-        var jsonFilePath = Path.Combine(_factory.Services.GetRequiredService<IWebHostEnvironment>().ContentRootPath, "..", "App.DAL.EF", "Seeding", "SeedData", "bookings.json");
+        var jsonFilePath = Path.Combine(
+            _factory.Services.GetRequiredService<IWebHostEnvironment>().ContentRootPath,
+            "..",
+            "App.DAL.EF",
+            "Seeding",
+            "SeedData",
+            "bookings.json"
+        );
         var jsonData = File.ReadAllText(jsonFilePath);
         var bookings = JsonSerializer.Deserialize<List<Booking>>(jsonData);
         return bookings?.Count ?? 0;
     }
-
-
 }

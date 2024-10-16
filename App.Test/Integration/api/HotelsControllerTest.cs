@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
 namespace App.Test.Integration.api;
+
 [Collection("NonParallel")]
 public class HotelsControllerTest : IClassFixture<CustomWebApplicationFactory<Program>>
 {
@@ -21,10 +22,7 @@ public class HotelsControllerTest : IClassFixture<CustomWebApplicationFactory<Pr
 
     public HotelsControllerTest(CustomWebApplicationFactory<Program> factory)
     {
-        _client = factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false
-        });
+        _client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
     }
 
     [Fact]
@@ -44,7 +42,7 @@ public class HotelsControllerTest : IClassFixture<CustomWebApplicationFactory<Pr
         Assert.NotNull(hotels);
         Assert.True(hotels.Count > 0);
     }
-    
+
     [Fact]
     public async Task GuestCannotViewAllHotels()
     {
@@ -57,11 +55,9 @@ public class HotelsControllerTest : IClassFixture<CustomWebApplicationFactory<Pr
         var response = await _client.SendAsync(request);
 
         // Assert: Check response
-        
+
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
-
-
 
     private async Task<string> GetJwtForUser(string email, string password)
     {
@@ -78,6 +74,4 @@ public class HotelsControllerTest : IClassFixture<CustomWebApplicationFactory<Pr
 
         return loginData.Jwt;
     }
-
-  
 }

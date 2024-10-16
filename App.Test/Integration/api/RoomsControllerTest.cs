@@ -11,20 +11,12 @@ namespace App.Test.Integration.api;
 public class RoomsControllerTest : IClassFixture<CustomWebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
-     private readonly CustomWebApplicationFactory<Program> _factory;
-
-    private const string AdminEmail = "admin@hotelx.com";
-    private const string AdminPassword = "Foo.Bar1";
-    private const string GuestEmail = "guest@hotelx.com";
-    private const string GuestPassword = "Guest.Pass1";
+    private readonly CustomWebApplicationFactory<Program> _factory;
 
     public RoomsControllerTest(CustomWebApplicationFactory<Program> factory)
     {
         _factory = factory;
-        _client = factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false
-        });
+        _client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
     }
 
     [Fact]
@@ -46,7 +38,7 @@ public class RoomsControllerTest : IClassFixture<CustomWebApplicationFactory<Pro
             RoomName = "Test Suite",
             BedCount = 2,
             Price = 150,
-            HotelId = Guid.Parse("5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b")
+            HotelId = Guid.Parse("5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"),
         };
 
         // Add the room to the database
@@ -54,7 +46,10 @@ public class RoomsControllerTest : IClassFixture<CustomWebApplicationFactory<Pro
         await dbContext.SaveChangesAsync();
 
         // Act: Request available rooms for the specified period
-        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/v1.0/Rooms?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}");
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"/api/v1.0/Rooms?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}"
+        );
         var response = await _client.SendAsync(request);
 
         // Assert: Check response
@@ -83,7 +78,7 @@ public class RoomsControllerTest : IClassFixture<CustomWebApplicationFactory<Pro
             AppUserId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7b"),
             StartDate = startDate,
             EndDate = endDate,
-            IsCancelled = false
+            IsCancelled = false,
         };
 
         // Add the booking to the database
@@ -91,7 +86,10 @@ public class RoomsControllerTest : IClassFixture<CustomWebApplicationFactory<Pro
         await dbContext.SaveChangesAsync();
 
         // Act: Request available rooms for the specified period
-        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/v1.0/Rooms?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}");
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"/api/v1.0/Rooms?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}"
+        );
         var response = await _client.SendAsync(request);
 
         // Assert: Check response
