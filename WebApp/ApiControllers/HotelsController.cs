@@ -35,7 +35,6 @@ namespace WebApp.ApiControllers
         /// <param name="bll">The business logic layer interface.</param>
         /// <param name="userManager">The user manager for handling user-related operations.</param>
         /// <param name="autoMapper">The AutoMapper instance for mapping between models.</param>
-        /// <param name="autoMapper">The AutoMapper instance for mapping between models.</param>
         public HotelsController(IAppBLL bll, UserManager<AppUser> userManager, IMapper autoMapper)
         {
             _bll = bll;
@@ -96,8 +95,8 @@ namespace WebApp.ApiControllers
         /// Updates a specific hotel.
         /// </summary>
         /// <param name="id">The ID of the hotel to update.</param>
-        /// <param name="hotelDto">The updated hotel data.</param>
-        /// <returns>No content if successful.</returns>
+        /// <param name="hotelDto">The updated hotel data, including name, location, and other relevant details.</param>
+        /// <returns>No content if the update is successful; otherwise, a BadRequest or NotFound result.</returns>
         [Authorize(Roles = RoleConstants.Admin)]
         [HttpPut("{id}")]
         public async Task<IActionResult> PutHotel(Guid id, App.DTO.Public.v1.Hotel hotelDto)

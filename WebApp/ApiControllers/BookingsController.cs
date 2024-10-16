@@ -204,6 +204,7 @@ namespace WebApp.ApiControllers
                     bookingDto.QuestId = Guid.Parse(_userManager.GetUserId(User));
                 }
 
+             
                 var validationResult = ValidateBookingDates(bookingDto.StartDate, bookingDto.EndDate);
                 if (validationResult != null)
                 {

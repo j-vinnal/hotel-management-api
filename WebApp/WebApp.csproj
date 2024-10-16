@@ -22,6 +22,7 @@
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10" />
         <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.8.1" />
+        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.8.1" />
     </ItemGroup>
 
     <ItemGroup>
@@ -31,6 +32,24 @@
       <ProjectReference Include="..\App.Domain\App.Domain.csproj" />
       <ProjectReference Include="..\App.DTO.Public\App.DTO.Public.csproj" />
       <ProjectReference Include="..\App.Public\App.Public.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="Views\Hotels\Create.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Hotels\Delete.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Hotels\Details.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Hotels\Edit.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Hotels\Index.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Rooms\Create.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Rooms\Delete.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Rooms\Details.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Rooms\Edit.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Rooms\Index.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Bookings\Create.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Bookings\Delete.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Bookings\Details.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Bookings\Edit.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Bookings\Index.cshtml" />
     </ItemGroup>
 
 

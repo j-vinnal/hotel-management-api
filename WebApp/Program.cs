@@ -206,8 +206,8 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// Register the X-Road error handling middleware and 
-app.UseMiddleware<XRoadErrorHandlingMiddleware>();
+
+
 
 //Gives CORS error
 //app.UseMiddleware<XRoadHeaderMiddleware>();
@@ -215,6 +215,11 @@ app.UseMiddleware<XRoadErrorHandlingMiddleware>();
 app.UseAuthorization();
 
 app.UseCors("CorsAllowAll");
+
+
+app.UseMiddleware<DateTimeMiddleware>();
+// Register the X-Road error handling middleware and 
+app.UseMiddleware<XRoadErrorHandlingMiddleware>();
 
 app.UseRequestLocalization(options:
     app.Services.GetService<IOptions<RequestLocalizationOptions>>()?.Value!

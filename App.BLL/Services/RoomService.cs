@@ -7,14 +7,10 @@ using Base.BLL;
 
 namespace App.BLL.Services;
 
-public class RoomService : BaseEntityService<Room, DTO.DAL.Room, IRoomRepository>,
-    IRoomService
+public class RoomService : BaseEntityService<Room, DTO.DAL.Room, IRoomRepository>, IRoomService
 {
-    
-    public RoomService(IAppUnitOfWork uow, IMapper mapper) : base(uow.RoomRepository, new BllDalMapper<App.DTO.DAL.Room, App.DTO.BLL.Room>(mapper))
-    {
-       
-    }
+    public RoomService(IAppUnitOfWork uow, IMapper mapper)
+        : base(uow.RoomRepository, new BllDalMapper<DTO.DAL.Room, Room>(mapper)) { }
 
     public async Task<IEnumerable<Room>> GetAllSortedAsync(bool noTracking = true)
     {
@@ -25,9 +21,17 @@ public class RoomService : BaseEntityService<Room, DTO.DAL.Room, IRoomRepository
     {
         return EntityMapper.Map(await Repository.FindWithDetailsAsync(id));
     }
-    
-    public async Task<IEnumerable<Room>> GetAvailableRoomsAsync(DateTime? startDate, DateTime? endDate, int? guestCount, Guid? currentBookingId, bool noTracking = true)
+
+    public async Task<IEnumerable<Room>> GetAvailableRoomsAsync(
+        DateTime? startDate,
+        DateTime? endDate,
+        int? guestCount,
+        Guid? currentBookingId,
+        bool noTracking = true
+    )
     {
-        return (await Repository.GetAvailableRoomsAsync(startDate, endDate, guestCount, currentBookingId, noTracking)).Select(e => EntityMapper.Map(e))!;
+        return (
+            await Repository.GetAvailableRoomsAsync(startDate, endDate, guestCount, currentBookingId, noTracking)
+        ).Select(e => EntityMapper.Map(e))!;
     }
 }

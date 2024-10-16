@@ -1,10 +1,10 @@
 [
     {
         "Id": "5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b",
-        "Name": "Luxury Stay",
+        "Name": "Salon X",
         "Address": "123 Luxury Lane",
         "PhoneNumber": "4746462000",
-        "Email": "contact@luxurystay.com",
+        "Email": "contact@salonx.com",
         "AppUserId": "0b439aaf-10f3-4c7d-b884-740097bbdd7a"
     }
 ]

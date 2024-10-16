@@ -49,6 +49,18 @@ namespace WebApp.ApiControllers
         {
             try
             {
+                // Validate that both startDate and endDate are either both provided or both omitted
+                if ((request.StartDate.HasValue && !request.EndDate.HasValue) || (!request.StartDate.HasValue && request.EndDate.HasValue))
+                {
+                    return BadRequest(
+                        new RestApiErrorResponse()
+                        {
+                            Status = HttpStatusCode.BadRequest,
+                            Error = "Both startDate and endDate must be provided or not provided."
+                        }
+                    );
+                }
+
                 if (request.StartDate.HasValue && request.EndDate.HasValue)
                 {
                     var validationResult = ValidateBookingDates(request.StartDate.Value, request.EndDate.Value);
@@ -57,7 +69,7 @@ namespace WebApp.ApiControllers
                         return validationResult;
                     }
                 }
-
+                
                 var rooms = await _bll.RoomService.GetAvailableRoomsAsync(
                     request.StartDate,
                     request.EndDate,
