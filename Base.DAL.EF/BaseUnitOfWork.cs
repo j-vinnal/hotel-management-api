@@ -12,7 +12,7 @@ public abstract class BaseUnitOfWork<TDbContext> : IUnitOfWork
     {
         UowDbContext = uowDbContext;
     }
-    
+
     public virtual async Task<int> SaveChangesAsync()
     {
         return await UowDbContext.SaveChangesAsync();

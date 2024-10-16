@@ -1,13 +1,13 @@
 using System.Net;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Identity;
 using App.Domain.Identity;
 using App.DTO.Public.v1;
 using App.Public;
-using Microsoft.AspNetCore.Authorization;
 using Asp.Versioning;
 using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace WebApp.ApiControllers
@@ -19,7 +19,6 @@ namespace WebApp.ApiControllers
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/[controller]")]
     [Authorize(Roles = "Admin", AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-
     public class ClientsController : ControllerBase
     {
         private readonly UserManager<AppUser> _userManager;
@@ -29,6 +28,7 @@ namespace WebApp.ApiControllers
         /// Initializes a new instance of the <see cref="ClientsController"/> class.
         /// </summary>
         /// <param name="userManager">The user manager to handle user operations.</param>
+        /// <param name="autoMapper"></param>
         public ClientsController(UserManager<AppUser> userManager, IMapper autoMapper)
         {
             _userManager = userManager;
@@ -42,12 +42,9 @@ namespace WebApp.ApiControllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Client>>> GetClients()
         {
-
             try
             {
-                var users = await _userManager.Users
-                    .OrderBy(u => u.FirstName)
-                    .ToListAsync();
+                var users = await _userManager.Users.OrderBy(u => u.FirstName).ToListAsync();
                 var clients = users.Select(u => _mapper.Map(u)).ToList();
                 return Ok(clients);
             }
@@ -65,7 +62,6 @@ namespace WebApp.ApiControllers
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<Client>> GetClient(Guid id)
         {
-
             try
             {
                 var user = await _userManager.FindByIdAsync(id.ToString());
@@ -121,6 +117,7 @@ namespace WebApp.ApiControllers
                 return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
             }
         }
+
         /// <summary>
         /// Handles X-Road specific errors.
         /// </summary>
@@ -133,7 +130,7 @@ namespace WebApp.ApiControllers
             {
                 type = errorType,
                 message = exception.Message,
-                detail = Guid.NewGuid().ToString()
+                detail = Guid.NewGuid().ToString(),
             };
 
             Response.ContentType = "application/json";

@@ -1,7 +1,5 @@
 ﻿using App.Contracts.DAL.Repositories;
-using App.DTO.DAL;
 using AutoMapper;
-using Base.Contracts;
 using Base.DAL.EF;
 using Hotel = App.Domain.Hotel;
 

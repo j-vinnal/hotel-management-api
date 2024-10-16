@@ -6,7 +6,12 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
-
+   
+      <ItemGroup>
+       <None Update="Seeding/SeedData/*.json">
+           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+       </None>
+   </ItemGroup>
 
     <ItemGroup>
         <FrameworkReference Include="Microsoft.AspNetCore.App"/>

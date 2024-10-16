@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.IO;
+using System.Linq;
 
 
 namespace App.DAL.EF.Seeding;
@@ -15,20 +17,17 @@ public static class AppDataInit
 {
     private static string SeedDataPath = string.Empty;
 
-    public static void InitializeSeedDataPath(IWebHostEnvironment env)
+    public static void InitializeSeedDataPath(IWebHostEnvironment env, ILogger logger)
     {
-        // Check if running in Docker
-        var isDocker = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
-      
+        // Set the seed data path relative to the known project structure
+        SeedDataPath = Path.Combine(env.ContentRootPath, "..", "App.DAL.EF", "Seeding", "SeedData");
 
-        if (isDocker)
+        if (!Directory.Exists(SeedDataPath))
         {
-            SeedDataPath = Path.Combine(env.ContentRootPath, "App.DAL.EF", "Seeding", "SeedData");
+            throw new DirectoryNotFoundException($"The seed data directory was not found: {SeedDataPath}");
         }
-        else
-        {
-            SeedDataPath = Path.Combine(env.ContentRootPath, "..", "App.DAL.EF", "Seeding", "SeedData");
-        }
+
+        logger.LogInformation("Seed data path set to: {SeedDataPath}", SeedDataPath);
     }
 
     public static void MigrateDatabase(AppDbContext context)

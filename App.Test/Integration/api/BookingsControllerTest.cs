@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
+using Microsoft.AspNetCore.Hosting;
 
 namespace App.Test.Integration.api;
 
@@ -91,7 +92,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         msg.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         response = await _client.SendAsync(msg);
-        
+
         response.EnsureSuccessStatusCode();
     }
 
@@ -110,45 +111,100 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         response.EnsureSuccessStatusCode();
         var bookings = await response.Content.ReadFromJsonAsync<List<Booking>>();
         Assert.NotNull(bookings);
-        Assert.True(bookings.Count > 0); 
+
+        // Get the expected count from the JSON file
+        var expectedCount = GetBookingCountFromJson();
+        Assert.True(bookings.Count >= expectedCount, $"Expected at least {expectedCount} bookings, but got {bookings.Count}.");
     }
 
-    [Fact]
-    public async Task GuestCannotCancelBookingOutsideAllowedPeriod()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    // Add more InlineData attributes as needed, up to BookingCancellationDaysLimit - 1
+    public async Task GuestCannotCancelBookingOutsideAllowedPeriod(int daysToAdd)
     {
-        // Arrange: Log in as a user and get JWT
+        // Arrange: Log in as a guest and get JWT
         var jwt = await GetJwtForUser(GuestEmail, GuestPassword);
 
         // Create a scope to resolve the AppDbContext
         using var scope = _factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        // Retrieve the booking from the database
-        var bookingId = Guid.Parse("e6f7a8b9-c0d1-2345-abcd-ef6789012345");
-        var booking = await dbContext.Bookings.FindAsync(bookingId);
-       
-        Assert.NotNull(booking);
+        // Define a new booking
+        var booking = new App.Domain.Booking
+        {
+            Id = Guid.NewGuid(),
+            RoomId = Guid.Parse("c3d4e5f6-7890-1234-abcd-ef3456789012"),
+            AppUserId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7b"),
+            StartDate = DateTime.UtcNow.AddDays(daysToAdd),
+            EndDate = DateTime.UtcNow.AddDays(daysToAdd + 10),
+            IsCancelled = false
+        };
 
-        // Check if the booking is within the allowed cancellation period
-        var dateOnly = DateTime.UtcNow.Date;
-        var canCancel = booking.StartDate.Date >= dateOnly.AddDays(BusinessConstants.BookingCancellationDaysLimit);
-        
-        Assert.True(canCancel);
-        
-        // Act: Cancel the booking
-        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1.0/Bookings/{bookingId}/cancel");
+        Assert.True(booking.StartDate < DateTime.UtcNow.AddDays(BusinessConstants.BookingCancellationDaysLimit));
+
+        // Add the booking to the database
+        dbContext.Bookings.Add(booking);
+        await dbContext.SaveChangesAsync();
+
+        // Act: Attempt to cancel the booking
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1.0/Bookings/{booking.Id}/cancel");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
         var response = await _client.SendAsync(request);
-        
-        
+
         // Assert: Check response
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
-    
-    [Fact]
-    public async Task AdminCanEditAndCancelBookingIfOutsideAllowedPeriod()
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task GuestCanCancelBookingWithinAllowedPeriod(int daysToAdd)
     {
-        // Arrange: Log in as a user and get JWT
+        // Arrange: Log in as a guest and get JWT
+        var jwt = await GetJwtForUser(GuestEmail, GuestPassword);
+
+        // Create a scope to resolve the AppDbContext
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        // Define a new booking
+        var booking = new App.Domain.Booking
+        {
+            Id = Guid.NewGuid(),
+            RoomId = Guid.Parse("d4e5f678-9012-3456-abcd-ef4567890123"),
+            AppUserId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7b"),
+            StartDate = DateTime.UtcNow.Date.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit),
+            EndDate = DateTime.UtcNow.Date.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit + 10),
+            IsCancelled = false
+        };
+
+        _testOutputHelper.WriteLine($"Booking Start Date: {booking.StartDate}");
+
+        Assert.True(booking.StartDate >= DateTime.UtcNow.Date.AddDays(BusinessConstants.BookingCancellationDaysLimit));
+
+        // Add the booking to the database
+        dbContext.Bookings.Add(booking);
+        await dbContext.SaveChangesAsync();
+
+        // Act: Attempt to cancel the booking
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1.0/Bookings/{booking.Id}/cancel");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+        var response = await _client.SendAsync(request);
+
+        // Assert: Check response
+        response.EnsureSuccessStatusCode();
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public async Task AdminCanEditAndCancelBookingIfOutsideAllowedPeriod(int daysToAdd)
+    {
+        // Arrange: Log in as admin and get JWT
         var jwt = await GetJwtForUser(AdminEmail, AdminPassword);
 
         // Create a scope to resolve the AppDbContext and the mapper
@@ -156,31 +212,40 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var mapper = scope.ServiceProvider.GetRequiredService<IMapper>();
 
-        // Retrieve the booking from the database
-        var bookingId = Guid.Parse("e6f7a8b9-c0d1-2345-abcd-ef6789012345");
-        var booking = await dbContext.Bookings.FindAsync(bookingId);
+        // Define a new booking
+        var booking = new App.Domain.Booking
+        {
+            Id = Guid.NewGuid(),
+            RoomId = Guid.Parse("d4e5f678-9012-3456-abcd-ef4567890123"),
+            AppUserId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7a"),
+            StartDate = DateTime.UtcNow.Date.AddDays(BusinessConstants.BookingCancellationDaysLimit - daysToAdd),
+            EndDate = DateTime.UtcNow.Date.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit + 11),
+            IsCancelled = false
+        };
 
-        Assert.NotNull(booking);
+        _testOutputHelper.WriteLine($"Booking Start Date: {booking.StartDate}");
 
-        // Check if the booking is within the allowed cancellation period
+        // Add the booking to the database
+        dbContext.Bookings.Add(booking);
+        await dbContext.SaveChangesAsync();
+
+        // Check if the booking is outside the allowed cancellation period
         var dateOnly = DateTime.UtcNow.Date;
         var canCancel = booking.StartDate.Date >= dateOnly.AddDays(BusinessConstants.BookingCancellationDaysLimit);
-        
-        Assert.True(canCancel);
+        Assert.False(canCancel);
 
         // Map the booking entity to the DTO
-        var bookingDto = mapper.Map<App.DTO.Public.v1.Booking>(booking);
+        var bookingDto = mapper.Map<Booking>(booking);
         bookingDto.QuestId = booking.AppUserId;
         bookingDto.IsCancelled = true;
 
         // Act: Update the booking to set IsCancelled = true
-        var request = new HttpRequestMessage(HttpMethod.Put, $"/api/v1.0/bookings/{bookingId}")
+        var request = new HttpRequestMessage(HttpMethod.Put, $"/api/v1.0/bookings/{booking.Id}")
         {
             Content = JsonContent.Create(bookingDto)
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
-        
-        
+
         var response = await _client.SendAsync(request);
 
         // Assert: Check response
@@ -188,41 +253,61 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
     }
 
 
-    [Fact]
-    public async Task GuestCanCancelBookingIfWithinAllowedPeriod()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public async Task GuestCannotEditAndCancelBookingIfOutsideAllowedPeriod(int daysToAdd)
     {
-        
-        _testOutputHelper.WriteLine("GuestCanCancelBookingIfWithinAllowedPeriod");
-        // Arrange: Log in as a user and get JWT
+        // Arrange: Log in as admin and get JWT
         var jwt = await GetJwtForUser(GuestEmail, GuestPassword);
 
-        // Create a scope to resolve the AppDbContext
+        // Create a scope to resolve the AppDbContext and the mapper
         using var scope = _factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var mapper = scope.ServiceProvider.GetRequiredService<IMapper>();
 
-        // Retrieve the booking from the database
-        var bookingId = Guid.Parse("b9c0d1e2-f3a4-5678-abcd-ef9012345678");
-      
-        var booking = await dbContext.Bookings.FindAsync(bookingId);
-     
-        Assert.NotNull(booking);
+        // Define a new booking
+        var booking = new App.Domain.Booking
+        {
+            Id = Guid.NewGuid(),
+            RoomId = Guid.Parse("d4e5f678-9012-3456-abcd-ef4567890123"),
+            AppUserId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7a"),
+            StartDate = DateTime.UtcNow.Date.AddDays(BusinessConstants.BookingCancellationDaysLimit - daysToAdd),
+            EndDate = DateTime.UtcNow.Date.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit + 11),
+            IsCancelled = false
+        };
 
-        // Check if the booking is within the allowed cancellation period
+        _testOutputHelper.WriteLine($"Booking Start Date: {booking.StartDate}");
+
+        // Add the booking to the database
+        dbContext.Bookings.Add(booking);
+        await dbContext.SaveChangesAsync();
+
+        // Check if the booking is outside the allowed cancellation period
         var dateOnly = DateTime.UtcNow.Date;
         var canCancel = booking.StartDate.Date >= dateOnly.AddDays(BusinessConstants.BookingCancellationDaysLimit);
-        
-        Assert.True(canCancel);
-        
-        // Act: Cancel the booking
-        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1.0/bookings/{bookingId}/cancel");
+        Assert.False(canCancel);
+
+        // Map the booking entity to the DTO
+        var bookingDto = mapper.Map<Booking>(booking);
+        bookingDto.QuestId = booking.AppUserId;
+        bookingDto.IsCancelled = true;
+
+        // Act: Update the booking to set IsCancelled = true
+        var request = new HttpRequestMessage(HttpMethod.Put, $"/api/v1.0/bookings/{booking.Id}")
+        {
+            Content = JsonContent.Create(bookingDto)
+        };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+
         var response = await _client.SendAsync(request);
 
         // Assert: Check response
-        response.EnsureSuccessStatusCode();
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
-    
-   
+
+
     [Fact]
     public async Task GuestCanBookFreeRoomForSpecifiedPeriod()
     {
@@ -233,22 +318,36 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         using var scope = _factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+        // Define a new room
+        var room = new App.Domain.Room
+        {
+            Id = Guid.NewGuid(),
+            RoomNumber = 999,
+            RoomName = "Test Room",
+            BedCount = 1,
+            Price = 100,
+            HotelId = Guid.Parse("5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b")
+        };
+
+        // Add the room to the database
+        dbContext.Rooms.Add(room);
+        await dbContext.SaveChangesAsync();
+
         // Define the booking details
-        var roomId = Guid.Parse("c3d4e5f6-7890-1234-abcd-ef3456789012"); 
-        var startDate = DateTime.UtcNow.AddDays(300);
-        var endDate = DateTime.UtcNow.AddDays(350);
+        var startDate = DateTime.UtcNow.AddDays(300).Date;
+        var endDate = DateTime.UtcNow.AddDays(350).Date;
 
         // Ensure the room is free for the specified period
-        var isRoomBooked = await dbContext.Bookings.AnyAsync(b => b.RoomId == roomId && 
-                                                                  !b.IsCancelled &&
-                                                                  ((startDate >= b.StartDate && startDate <= b.EndDate) ||
-                                                                   (endDate <= b.EndDate && endDate >= b.StartDate)));
+        var isRoomBooked = await dbContext.Bookings.AnyAsync(b => b.RoomId == room.Id &&
+                                                              !b.IsCancelled &&
+                                                              b.StartDate.Date <= endDate && startDate <= b.EndDate.Date);
+
         Assert.False(isRoomBooked, "Room is already booked for the specified period.");
 
         // Create the booking DTO
         var bookingDto = new Booking
         {
-            RoomId = roomId,
+            RoomId = room.Id,
             StartDate = startDate,
             EndDate = endDate,
             QuestId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7b")
@@ -266,12 +365,75 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         response.EnsureSuccessStatusCode();
         var createdBooking = await response.Content.ReadFromJsonAsync<Booking>();
         Assert.NotNull(createdBooking);
-        Assert.Equal(roomId, createdBooking.RoomId);
-        Assert.Equal(startDate, createdBooking.StartDate);
-        Assert.Equal(endDate, createdBooking.EndDate);
+        Assert.Equal(room.Id, createdBooking.RoomId);
+        Assert.Equal(startDate, createdBooking.StartDate.Date);
+        Assert.Equal(endDate, createdBooking.EndDate.Date);
     }
-    
-   
+
+    [Fact]
+    public async Task GuestCannotBookAlreadyBookedRoom()
+    {
+        // Arrange: Log in as a guest and get JWT
+        var jwt = await GetJwtForUser(GuestEmail, GuestPassword);
+
+        // Create a scope to resolve the AppDbContext
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        // Define a new room
+        var room = new App.Domain.Room
+        {
+            Id = Guid.NewGuid(),
+            RoomNumber = 1000,
+            RoomName = "Test Room for Double Booking",
+            BedCount = 1,
+            Price = 100,
+            HotelId = Guid.Parse("5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b")
+        };
+
+        // Add the room to the database
+        dbContext.Rooms.Add(room);
+        await dbContext.SaveChangesAsync();
+
+        // Define the first booking
+        var startDate = DateTime.UtcNow.AddDays(10).Date;
+        var endDate = DateTime.UtcNow.AddDays(15).Date;
+
+        var firstBooking = new App.Domain.Booking
+        {
+            Id = Guid.NewGuid(),
+            RoomId = room.Id,
+            AppUserId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7b"),
+            StartDate = startDate,
+            EndDate = endDate,
+            IsCancelled = false
+        };
+
+        // Add the first booking to the database
+        dbContext.Bookings.Add(firstBooking);
+        await dbContext.SaveChangesAsync();
+
+        // Attempt to create a second booking for the same room and overlapping dates
+        var secondBookingDto = new Booking
+        {
+            RoomId = room.Id,
+            StartDate = startDate.AddDays(2), // Overlapping period
+            EndDate = endDate.AddDays(2),
+            QuestId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7b")
+        };
+
+        // Act: Try to book the room again
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1.0/Bookings")
+        {
+            Content = JsonContent.Create(secondBookingDto)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+        var response = await _client.SendAsync(request);
+
+        // Assert: Check response
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     private async Task<string> GetJwtForUser(string email, string password)
     {
         var response = await _client.PostAsJsonAsync("/api/v1.0/identity/Account/Login", new { email, password });
@@ -287,4 +449,15 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
 
         return loginData.Jwt;
     }
+
+
+    private int GetBookingCountFromJson()
+    {
+        var jsonFilePath = Path.Combine(_factory.Services.GetRequiredService<IWebHostEnvironment>().ContentRootPath, "..", "App.DAL.EF", "Seeding", "SeedData", "bookings.json");
+        var jsonData = File.ReadAllText(jsonFilePath);
+        var bookings = JsonSerializer.Deserialize<List<Booking>>(jsonData);
+        return bookings?.Count ?? 0;
+    }
+
+
 }

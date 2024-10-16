@@ -59,6 +59,10 @@ public class CustomWebApplicationFactory<TStartup>
             var logger = scopedServices
                 .GetRequiredService<ILogger<CustomWebApplicationFactory<TStartup>>>();
 
+            // Initialize seed data path
+            var env = scopedServices.GetRequiredService<IWebHostEnvironment>();
+            AppDataInit.InitializeSeedDataPath(env, logger);
+
             var userManager = scopedServices.GetRequiredService<UserManager<AppUser>>();
             var roleManager = scopedServices.GetRequiredService<RoleManager<AppRole>>();
 
@@ -66,13 +70,20 @@ public class CustomWebApplicationFactory<TStartup>
             //db.Database.EnsureDeleted();
             db.Database.EnsureCreated();
 
-            //Seeded in program.cs
-            
-            // Log the seeding process
-            /*
             try
             {
+                logger.LogInformation("Starting to seed identity data...");
                 AppDataInit.SeedIdentity(userManager, roleManager, logger).Wait();
+                logger.LogInformation("Identity data seeded successfully.");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An error occurred seeding the identity data.");
+                throw; // Rethrow the exception if needed
+            }
+
+            try
+            {
                 AppDataInit.SeedAppData(db).Wait();
                 logger.LogInformation("Database seeded successfully.");
             }
@@ -80,8 +91,6 @@ public class CustomWebApplicationFactory<TStartup>
             {
                 logger.LogError(ex, "An error occurred seeding the database.");
             }
-            */
-            
         });
     }
 }

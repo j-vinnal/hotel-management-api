@@ -1,7 +1,5 @@
 using System.Net;
 using App.Contracts.BLL;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using App.Domain.Identity;
 using App.DTO.Public.v1;
 using App.Public;
@@ -11,6 +9,8 @@ using Base.Helpers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebApp.ApiControllers
 {
@@ -22,12 +22,11 @@ namespace WebApp.ApiControllers
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Authorize(Roles = "Admin", AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/v{version:apiVersion}/[controller]")]
-
     public class HotelsController : ControllerBase
     {
         private readonly IAppBLL _bll;
         private readonly UserManager<AppUser> _userManager;
-        private readonly BllPublicMapper<App.DTO.BLL.Hotel, App.DTO.Public.v1.Hotel> _mapper;
+        private readonly BllPublicMapper<App.DTO.BLL.Hotel, Hotel> _mapper;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HotelsController"/> class.
@@ -39,7 +38,7 @@ namespace WebApp.ApiControllers
         {
             _bll = bll;
             _userManager = userManager;
-            _mapper = new BllPublicMapper<App.DTO.BLL.Hotel, App.DTO.Public.v1.Hotel>(autoMapper);
+            _mapper = new BllPublicMapper<App.DTO.BLL.Hotel, Hotel>(autoMapper);
         }
 
         //TODO: Implement get hotel name by id
@@ -53,8 +52,15 @@ namespace WebApp.ApiControllers
         {
             try
             {
-                var appUserId = Guid.Parse(_userManager.GetUserId(User));
-                var hotels = await _bll.HotelService.GetAllAsync(appUserId);
+                var userIdStr = _userManager.GetUserId(User);
+                if (userIdStr == null)
+                {
+                    return BadRequest("User ID is not available.");
+                }
+
+                var userId = Guid.Parse(userIdStr);
+
+                var hotels = await _bll.HotelService.GetAllAsync(userId);
                 var hotelDtos = hotels.Select(h => _mapper.Map(h)).ToList();
 
                 return Ok(hotelDtos);
@@ -70,13 +76,20 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="id">The ID of the hotel.</param>
         /// <returns>The hotel with the specified ID.</returns>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<App.DTO.Public.v1.Hotel>> GetHotel(Guid id)
+        [HttpGet("{id:guid}")]
+        public async Task<ActionResult<Hotel>> GetHotel(Guid id)
         {
             try
             {
-                var appUserId = Guid.Parse(_userManager.GetUserId(User));
-                var hotel = await _bll.HotelService.FindAsync(id, appUserId);
+                var userIdStr = _userManager.GetUserId(User);
+                if (userIdStr == null)
+                {
+                    return BadRequest("User ID is not available.");
+                }
+
+                var userId = Guid.Parse(userIdStr);
+
+                var hotel = await _bll.HotelService.FindAsync(id, userId);
 
                 if (hotel == null)
                 {
@@ -98,8 +111,8 @@ namespace WebApp.ApiControllers
         /// <param name="hotelDto">The updated hotel data, including name, location, and other relevant details.</param>
         /// <returns>No content if the update is successful; otherwise, a BadRequest or NotFound result.</returns>
         [Authorize(Roles = RoleConstants.Admin)]
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutHotel(Guid id, App.DTO.Public.v1.Hotel hotelDto)
+        [HttpPut("{id:guid}")]
+        public async Task<IActionResult> PutHotel(Guid id, Hotel hotelDto)
         {
             try
             {
@@ -108,21 +121,24 @@ namespace WebApp.ApiControllers
                     return BadRequest();
                 }
 
-                var appUserId = Guid.Parse(_userManager.GetUserId(User));
-                var existingEntity = await _bll.HotelService.FindAsync(hotelDto.Id, appUserId);
+                var userIdStr = _userManager.GetUserId(User);
+                if (userIdStr == null)
+                {
+                    return BadRequest("User ID is not available.");
+                }
+
+                var userId = Guid.Parse(userIdStr);
+
+                var existingEntity = await _bll.HotelService.FindAsync(hotelDto.Id, userId);
                 if (existingEntity == null)
                 {
                     return BadRequest(
-                        new RestApiErrorResponse()
-                        {
-                            Status = HttpStatusCode.BadRequest,
-                            Error = "Hotel not found."
-                        }
+                        new RestApiErrorResponse() { Status = HttpStatusCode.BadRequest, Error = "Hotel not found." }
                     );
                 }
 
                 var hotel = _mapper.Map(hotelDto)!;
-                hotel.AppUserId = appUserId;
+                hotel.AppUserId = userId;
                 _bll.HotelService.Update(hotel);
 
                 try
@@ -149,7 +165,6 @@ namespace WebApp.ApiControllers
             }
         }
 
-
         /// <summary>
         /// Checks if a hotel exists.
         /// </summary>
@@ -172,7 +187,7 @@ namespace WebApp.ApiControllers
             {
                 type = errorType,
                 message = exception.Message,
-                detail = Guid.NewGuid().ToString()
+                detail = Guid.NewGuid().ToString(),
             };
 
             Response.ContentType = "application/json";

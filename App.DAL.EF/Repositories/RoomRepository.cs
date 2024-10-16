@@ -111,33 +111,20 @@ public class RoomRepository : BaseEntityRepository<Room, DTO.DAL.Room, AppDbCont
                 .ToListAsync();
         }
 
-        /// <summary>
-        /// Initializes a query to filter bookings, excluding the current booking if specified.
-        /// </summary>
-        /// <param name="currentBookingId">The ID of the current booking to exclude from the query.</param>
+        // Initializes a query to filter bookings, excluding the current booking if specified.
         var bookedRoomIdsQuery = RepositoryDbContext.Bookings.Where(b => !b.IsCancelled && b.Id != currentBookingId);
 
-        /// <summary>
-        /// Applies date filters based on provided startDate and endDate.
-        /// </summary>
-        /// <param name="startDate">The start date of the booking period.</param>
-        /// <param name="endDate">The end date of the booking period.</param>
+        //Applies date filters based on provided startDate and endDate.
         if (startDate.HasValue && endDate.HasValue)
         {
             // Filter bookings that overlap with the specified date range
             bookedRoomIdsQuery = bookedRoomIdsQuery.Where(b => b.StartDate <= endDate && startDate <= b.EndDate);
         }
 
-        /// <summary>
-        /// Retrieves the list of booked room IDs.
-        /// </summary>
+        // Retrieves the list of booked room IDs.
         var bookedRoomIds = await bookedRoomIdsQuery.Select(b => b.RoomId).ToListAsync();
 
-        /// <summary>
-        /// Queries to find available rooms that are not booked and meet the guest count requirement.
-        /// </summary>
-        /// <param name="guestCount">The number of guests to accommodate.</param>
-        /// <returns>A task that represents the asynchronous operation. The task result contains a list of available rooms.</returns>
+        // Queries to find available rooms that are not booked and meet the guest count requirement.
         var query = RepositoryDbSet.Where(r => !bookedRoomIds.Contains(r.Id) && r.BedCount >= (guestCount ?? 0));
 
         if (noTracking)

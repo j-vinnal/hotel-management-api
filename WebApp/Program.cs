@@ -18,11 +18,8 @@ using Microsoft.IdentityModel.Tokens;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using WebApp;
 using AutoMapperProfile = App.DAL.EF.AutoMapperProfile;
-using System.Net.Http.Headers;
-using System.Net.Http;
 using App.DTO.Public.v1;
 using Microsoft.AspNetCore.Mvc;
-using Npgsql;
 using WebApp.Middleware;
 
 
@@ -261,7 +258,7 @@ static async void SetupAppData(IApplicationBuilder app, IConfiguration configura
         .CreateScope();
 
     var env = serviceScope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
-    AppDataInit.InitializeSeedDataPath(env);
+    
 
     await using var context = serviceScope.ServiceProvider.GetService<AppDbContext>();
 
@@ -276,10 +273,14 @@ static async void SetupAppData(IApplicationBuilder app, IConfiguration configura
 
     var logger = serviceScope.ServiceProvider.GetRequiredService<ILogger<IApplicationBuilder>>();
 
-
+    
+    
     if (logger == null) throw new ApplicationException("Problem in services. Can't initialize logger");
+    
+    
+    AppDataInit.InitializeSeedDataPath(env, logger);
 
-   // if (context.Database.ProviderName!.Contains("InMemory")) return;
+   if (context.Database.ProviderName!.Contains("InMemory")) return;
 
 
     //TODO: wait for db connection

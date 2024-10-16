@@ -1,13 +1,13 @@
 using System.Net;
 using App.Contracts.BLL;
 using App.DTO.Public.v1;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using App.Public;
 using Asp.Versioning;
 using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebApp.ApiControllers
 {
@@ -19,11 +19,10 @@ namespace WebApp.ApiControllers
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Authorize(Roles = "Admin", AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/v{version:apiVersion}/[controller]")]
-
     public class RoomsController : ControllerBase
     {
         private readonly IAppBLL _bll;
-        private readonly BllPublicMapper<App.DTO.BLL.Room, App.DTO.Public.v1.Room> _mapper;
+        private readonly BllPublicMapper<App.DTO.BLL.Room, Room> _mapper;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RoomsController"/> class.
@@ -33,7 +32,7 @@ namespace WebApp.ApiControllers
         public RoomsController(IAppBLL bll, IMapper autoMapper)
         {
             _bll = bll;
-            _mapper = new BllPublicMapper<App.DTO.BLL.Room, App.DTO.Public.v1.Room>(autoMapper);
+            _mapper = new BllPublicMapper<App.DTO.BLL.Room, Room>(autoMapper);
         }
 
         /// <summary>
@@ -45,23 +44,26 @@ namespace WebApp.ApiControllers
         /// <response code="400">If the end date is earlier than the start date.</response>
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<App.DTO.Public.v1.Room>>> GetRooms([FromQuery] App.DTO.Public.v1.RoomAvailabilityRequest request)
+        public async Task<ActionResult<IEnumerable<Room>>> GetRooms([FromQuery] RoomAvailabilityRequest request)
         {
             try
             {
                 // Validate that both startDate and endDate are either both provided or both omitted
-                if ((request.StartDate.HasValue && !request.EndDate.HasValue) || (!request.StartDate.HasValue && request.EndDate.HasValue))
+                if (
+                    request is { StartDate: not null, EndDate: null }
+                    || (!request.StartDate.HasValue && request.EndDate.HasValue)
+                )
                 {
                     return BadRequest(
                         new RestApiErrorResponse()
                         {
                             Status = HttpStatusCode.BadRequest,
-                            Error = "Both startDate and endDate must be provided or not provided."
+                            Error = "Both startDate and endDate must be provided or not provided.",
                         }
                     );
                 }
 
-                if (request.StartDate.HasValue && request.EndDate.HasValue)
+                if (request is { StartDate: not null, EndDate: not null })
                 {
                     var validationResult = ValidateBookingDates(request.StartDate.Value, request.EndDate.Value);
                     if (validationResult != null)
@@ -69,7 +71,7 @@ namespace WebApp.ApiControllers
                         return validationResult;
                     }
                 }
-                
+
                 var rooms = await _bll.RoomService.GetAvailableRoomsAsync(
                     request.StartDate,
                     request.EndDate,
@@ -91,9 +93,9 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="id">The ID of the room.</param>
         /// <returns>The room with the specified ID.</returns>
-        [HttpGet("{id}")]
+        [HttpGet("{id:guid}")]
         [AllowAnonymous]
-        public async Task<ActionResult<App.DTO.Public.v1.Room>> GetRoom(Guid id)
+        public async Task<ActionResult<Room>> GetRoom(Guid id)
         {
             try
             {
@@ -119,20 +121,14 @@ namespace WebApp.ApiControllers
         /// <param name="roomDto">The updated room data.</param>
         /// <returns>No content if successful.</returns>
         [HttpPut("{id}")]
-
-        public async Task<IActionResult> PutRoom(Guid id, App.DTO.Public.v1.Room roomDto)
+        public async Task<IActionResult> PutRoom(Guid id, Room roomDto)
         {
-
             try
             {
                 if (id != roomDto.Id)
                 {
                     return BadRequest(
-                        new RestApiErrorResponse()
-                        {
-                            Status = HttpStatusCode.BadRequest,
-                            Error = "Room not found"
-                        }
+                        new RestApiErrorResponse() { Status = HttpStatusCode.BadRequest, Error = "Room not found" }
                     );
                 }
 
@@ -169,7 +165,7 @@ namespace WebApp.ApiControllers
         /// <param name="roomDto">The room data to create.</param>
         /// <returns>The created room.</returns>
         [HttpPost]
-        public async Task<ActionResult<App.DTO.Public.v1.Room>> PostRoom(App.DTO.Public.v1.Room roomDto)
+        public async Task<ActionResult<Room>> PostRoom(Room roomDto)
         {
             try
             {
@@ -190,7 +186,7 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="id">The ID of the room to delete.</param>
         /// <returns>No content if successful.</returns>
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:guid}")]
         public async Task<IActionResult> DeleteRoom(Guid id)
         {
             try
@@ -238,7 +234,7 @@ namespace WebApp.ApiControllers
                     new RestApiErrorResponse()
                     {
                         Status = HttpStatusCode.BadRequest,
-                        Error = "End date cannot be earlier than start date."
+                        Error = "End date cannot be earlier than start date.",
                     }
                 );
             }
@@ -257,7 +253,7 @@ namespace WebApp.ApiControllers
             {
                 type = errorType,
                 message = exception.Message,
-                detail = Guid.NewGuid().ToString()
+                detail = Guid.NewGuid().ToString(),
             };
 
             Response.ContentType = "application/json";

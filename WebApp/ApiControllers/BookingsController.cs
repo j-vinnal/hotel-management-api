@@ -1,8 +1,6 @@
 using System.Net;
 using App.Constants;
 using App.Contracts.BLL;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using App.Domain.Identity;
 using App.DTO.Public.v1;
 using App.Public;
@@ -12,7 +10,8 @@ using Base.Helpers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
-
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebApp.ApiControllers
 {
@@ -23,12 +22,11 @@ namespace WebApp.ApiControllers
     [ApiVersion("1.0")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/v{version:apiVersion}/[controller]")]
-
     public class BookingsController : ControllerBase
     {
         private readonly IAppBLL _bll;
         private readonly UserManager<AppUser> _userManager;
-        private readonly BllPublicMapper<App.DTO.BLL.Booking, App.DTO.Public.v1.Booking> _mapper;
+        private readonly BllPublicMapper<App.DTO.BLL.Booking, Booking> _mapper;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BookingsController"/> class.
@@ -40,22 +38,32 @@ namespace WebApp.ApiControllers
         {
             _bll = bll;
             _userManager = userManager;
-            _mapper = new BllPublicMapper<App.DTO.BLL.Booking, App.DTO.Public.v1.Booking>(autoMapper);
+            _mapper = new BllPublicMapper<App.DTO.BLL.Booking, Booking>(autoMapper);
         }
 
         /// <summary>
         /// Gets all bookings.
         /// </summary>
+        /// <param name="viewAll">
+        /// A boolean parameter used by users with the Admin role. 
+        /// If set to false, the user will only see their personal bookings. 
+        /// If true, the user will see all bookings.
+        /// </param>
         /// <returns>A list of bookings.</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<App.DTO.Public.v1.Booking>>> GetBookings(bool viewAll = true)
+        public async Task<ActionResult<IEnumerable<Booking>>> GetBookings(bool viewAll = true)
         {
-
             try
             {
                 IEnumerable<App.DTO.BLL.Booking> bookings;
 
-                var userId = Guid.Parse(_userManager.GetUserId(User));
+                var userIdStr = _userManager.GetUserId(User);
+                if (userIdStr == null)
+                {
+                    return BadRequest("User ID is not available.");
+                }
+
+                var userId = Guid.Parse(userIdStr);
 
                 if (User.IsInRole(RoleConstants.Admin))
                 {
@@ -87,8 +95,8 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="id">The ID of the booking.</param>
         /// <returns>The booking with the specified ID.</returns>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<App.DTO.Public.v1.Booking>> GetBooking(Guid id)
+        [HttpGet("{id:guid}")]
+        public async Task<ActionResult<Booking>> GetBooking(Guid id)
         {
             try
             {
@@ -100,7 +108,13 @@ namespace WebApp.ApiControllers
                 }
                 else
                 {
-                    var userId = Guid.Parse(_userManager.GetUserId(User));
+                    var userIdStr = _userManager.GetUserId(User);
+                    if (userIdStr == null)
+                    {
+                        return BadRequest("User ID is not available.");
+                    }
+
+                    var userId = Guid.Parse(userIdStr);
                     booking = await _bll.BookingService.FindWithDetailsAsync(id, userId);
                 }
 
@@ -124,8 +138,8 @@ namespace WebApp.ApiControllers
         /// <param name="bookingDto">The updated booking data.</param>
         /// <returns>No content if successful, or a bad request if the room is already booked for the selected dates.</returns>
         [Authorize(Roles = RoleConstants.Admin)]
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutBooking(Guid id, App.DTO.Public.v1.Booking bookingDto)
+        [HttpPut("{id:guid}")]
+        public async Task<IActionResult> PutBooking(Guid id, Booking bookingDto)
         {
             try
             {
@@ -153,8 +167,8 @@ namespace WebApp.ApiControllers
                         new RestApiErrorResponse()
                         {
                             Status = HttpStatusCode.BadRequest,
-                            Error = $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}."
-
+                            Error =
+                                $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}.",
                         }
                     );
                 }
@@ -195,23 +209,32 @@ namespace WebApp.ApiControllers
         /// Returns a bad request if the room is already booked for the selected dates.
         /// </returns>
         [HttpPost]
-        public async Task<ActionResult<App.DTO.Public.v1.Booking>> PostBooking(App.DTO.Public.v1.Booking bookingDto)
+        public async Task<ActionResult<Booking>> PostBooking(Booking bookingDto)
         {
             try
             {
                 if (!User.IsInRole(RoleConstants.Admin))
                 {
-                    bookingDto.QuestId = Guid.Parse(_userManager.GetUserId(User));
+                    var userIdStr = _userManager.GetUserId(User);
+                    if (userIdStr == null)
+                    {
+                        return BadRequest("User ID is not available.");
+                    }
+
+                    bookingDto.QuestId = Guid.Parse(userIdStr);
                 }
 
-             
                 var validationResult = ValidateBookingDates(bookingDto.StartDate, bookingDto.EndDate);
                 if (validationResult != null)
                 {
                     return validationResult;
                 }
 
-                bool canBook = !await _bll.BookingService.IsRoomBookedAsync(bookingDto.RoomId, bookingDto.StartDate, bookingDto.EndDate);
+                bool canBook = !await _bll.BookingService.IsRoomBookedAsync(
+                    bookingDto.RoomId,
+                    bookingDto.StartDate,
+                    bookingDto.EndDate
+                );
 
                 if (!canBook)
                 {
@@ -219,7 +242,8 @@ namespace WebApp.ApiControllers
                         new RestApiErrorResponse()
                         {
                             Status = HttpStatusCode.BadRequest,
-                            Error = $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}."
+                            Error =
+                                $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}.",
                         }
                     );
                 }
@@ -235,17 +259,25 @@ namespace WebApp.ApiControllers
                 return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
             }
         }
+
         /// <summary>
         /// Cancels a specific booking.
         /// </summary>
         /// <param name="id">The ID of the booking to cancel.</param>
         /// <returns>No content if successful, or a forbidden status if not allowed.</returns>
-        [HttpPost("{id}/cancel")]
+        [HttpPost("{id:guid}/cancel")]
         public async Task<IActionResult> CancelBooking(Guid id)
         {
             try
             {
-                var userId = Guid.Parse(_userManager.GetUserId(User));
+                var userIdStr = _userManager.GetUserId(User);
+                if (userIdStr == null)
+                {
+                    return BadRequest("User ID is not available.");
+                }
+
+                var userId = Guid.Parse(userIdStr);
+
                 var booking = await _bll.BookingService.FindAsync(id, userId);
 
                 if (booking == null)
@@ -265,7 +297,8 @@ namespace WebApp.ApiControllers
                     new RestApiErrorResponse()
                     {
                         Status = HttpStatusCode.Forbidden,
-                        Error = $"Booking can only be cancelled within {BusinessConstants.BookingCancellationDaysLimit} days of the start date."
+                        Error =
+                            $"Booking can only be cancelled within {BusinessConstants.BookingCancellationDaysLimit} days of the start date.",
                     }
                 );
             }
@@ -281,7 +314,7 @@ namespace WebApp.ApiControllers
         /// <param name="id">The ID of the booking to delete.</param>
         /// <returns>No content if successful.</returns>
         [Authorize(Roles = RoleConstants.Admin)]
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:guid}")]
         public async Task<IActionResult> DeleteBooking(Guid id)
         {
             try
@@ -328,7 +361,7 @@ namespace WebApp.ApiControllers
                     new RestApiErrorResponse()
                     {
                         Status = HttpStatusCode.BadRequest,
-                        Error = "End date cannot be earlier than start date."
+                        Error = "End date cannot be earlier than start date.",
                     }
                 );
             }
@@ -347,7 +380,7 @@ namespace WebApp.ApiControllers
             {
                 type = errorType,
                 message = exception.Message,
-                detail = Guid.NewGuid().ToString()
+                detail = Guid.NewGuid().ToString(),
             };
 
             Response.ContentType = "application/json";
