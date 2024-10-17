@@ -94,7 +94,6 @@ This layer contains the ASP.NET Core Web API implementation.
 - **Controllers**: Contains MVC controllers for testing purposes.
 - **ApiControllers**: Contains API controllers for handling API requests.
 - **Program.cs**: The application's entry point, responsible for setting up dependency injection, database configuration, and middleware.
-- **Middleware**: Contains custom middleware for handling X-Road specific headers and errors.
 
 ### Testing
 
