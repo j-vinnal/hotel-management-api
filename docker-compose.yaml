@@ -17,5 +17,20 @@ services:
       - '5446:5432'
     volumes:
       - hotel-db-postgres-volume:/var/lib/postgresql/data
+
+
+  hotel-x:
+    container_name: hotel-x
+    build:
+      dockerfile: Dockerfile
+    ports: 
+        # external:internal
+        - "8000:80"
+    depends_on: 
+      - hotel-db
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=hotel-db;Database=hotel-db;Username=postgres;Password=postgres
+      - DOTNET_RUNNING_IN_CONTAINER=true
+
 volumes:
   hotel-db-postgres-volume:

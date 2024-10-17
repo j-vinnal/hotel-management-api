@@ -8,6 +8,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "0_Solution_Items", "0_Solut
 		.gitignore = .gitignore
 		README.md = README.md
 		docker-compose.yaml = docker-compose.yaml
+		Dockerfile = Dockerfile
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "1_App", "1_App", "{B0465733-2255-4358-8FD9-27AEEC79A935}"

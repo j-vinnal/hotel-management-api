@@ -206,14 +206,14 @@ else
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
+app.UseCors("CorsAllowAll");
 app.UseMiddleware<XRoadClientHeaderMiddleware>();
 
 app.UseRouting();
 
 app.UseAuthorization();
 
-app.UseCors("CorsAllowAll");
+
 
 app.UseMiddleware<DateTimeMiddleware>();
 

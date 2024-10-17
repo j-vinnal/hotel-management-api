@@ -20,14 +20,23 @@ public static class AppDataInit
     public static void InitializeSeedDataPath(IWebHostEnvironment env, ILogger logger)
     {
         // Set the seed data path relative to the known project structure
-        SeedDataPath = Path.Combine(env.ContentRootPath, "..", "App.DAL.EF", "Seeding", "SeedData");
+        var isDocker = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
+        var isTesting = Environment.GetEnvironmentVariable("DOTNET_RUNNING_TESTS") == "true";
 
-        if (!Directory.Exists(SeedDataPath))
+        if (isDocker && isTesting)
         {
-            throw new DirectoryNotFoundException($"The seed data directory was not found: {SeedDataPath}");
+            SeedDataPath = Path.Combine(env.ContentRootPath, "..", "App.DAL.EF", "Seeding", "SeedData");
+        }
+        else if (isDocker)
+        {
+            SeedDataPath = Path.Combine(env.ContentRootPath, "App.DAL.EF", "Seeding", "SeedData");
+        }
+        else
+        {
+            SeedDataPath = Path.Combine(env.ContentRootPath, "..", "App.DAL.EF", "Seeding", "SeedData");
         }
 
-        logger.LogInformation("Seed data path set to: {SeedDataPath}", SeedDataPath);
+        logger.LogCritical("Is Docker: {isDocker}, Is Testing: {isTesting}", isDocker, isTesting);
     }
 
     public static void MigrateDatabase(AppDbContext context)
@@ -38,13 +47,13 @@ public static class AppDataInit
     public static void DropDatabase(AppDbContext context)
     {
         context.Database.EnsureDeleted();
-       
+
     }
 
     public static async Task SeedIdentity(UserManager<AppUser> userManager, RoleManager<AppRole> roleManager, ILogger logger)
     {
         var adminData = await LoadJsonData<AdminUserData>(Path.Combine(SeedDataPath, "admin.json"));
-        var guestData = await LoadJsonData<AdminUserData>(Path.Combine(SeedDataPath, "guest.json")); 
+        var guestData = await LoadJsonData<AdminUserData>(Path.Combine(SeedDataPath, "guest.json"));
 
         // Create roles
         foreach (var role in RoleConstants.DefaultRoles)

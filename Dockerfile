@@ -53,6 +53,7 @@ COPY App.BLL/. ./App.BLL/
 COPY App.Contracts.BLL/. ./App.Contracts.BLL/
 COPY App.Contracts.DAL/. ./App.Contracts.DAL/
 COPY App.DAL.EF/. ./App.DAL.EF/
+COPY App.DAL.EF/Seeding/SeedData/ /App.DAL.EF/Seeding/SeedData/
 COPY App.Domain/. ./App.Domain/
 COPY App.DTO.BLL/. ./App.DTO.BLL/
 COPY App.DTO.DAL/. ./App.DTO.DAL/
@@ -62,15 +63,20 @@ COPY App.Test/. ./App.Test/
 COPY App.Constants/. ./App.Constants/
 COPY WebApp/. ./WebApp/
 
-# Copy seed data
-COPY App.DAL.EF/Seeding/SeedData/ /app/App.DAL.EF/Seeding/SeedData/
+
+
+WORKDIR /app
 
 
 # Run tests
 WORKDIR /src/App.Test
+ENV DOTNET_RUNNING_TESTS=true
 RUN dotnet test
 
 # Build the application
+
+
+
 WORKDIR /src/WebApp
 RUN dotnet publish -c Release -o out
 
@@ -79,7 +85,9 @@ WORKDIR /app
 EXPOSE 80
 
 COPY --from=build /src/WebApp/out ./
-COPY --from=build /src/App.DAL.EF/Seeding/SeedData/ ./App.DAL.EF/Seeding/SeedData/
+COPY --from=build /src/App.DAL.EF/Seeding/SeedData ./App.DAL.EF/Seeding/SeedData/
+
+
 ENV TZ=Etc/UTC
 
 ENTRYPOINT ["dotnet", "WebApp.dll"]
