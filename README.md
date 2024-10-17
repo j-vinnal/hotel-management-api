@@ -107,7 +107,28 @@ To get started with the project, follow these steps:
 2. Set up the database and configure the connection string.
 3. Run the application using your preferred IDE or command line.
 
-### Setting Up the Database
+
+
+## Database Configuration
+
+The application can be configured to use different database settings as specified in the `appsettings.json` file:
+
+- **UseInMemoryDatabase**: This option allows the application to use an in-memory database for testing purposes. Set `"UseInMemoryDatabase": true` under the `"Testing"` section to enable this feature.
+
+- **Database Type**: You can choose whether the application runs on an in-memory database or a real database by setting `"UseInMemory": true` or `"UseInMemory": false` under the `"Database"` section.
+
+- **Connection Strings**: The application uses PostgreSQL databases by default. The connection strings are defined under the `"ConnectionStrings"` section:
+  - `DefaultConnection`: Used for the main application database.
+  - `TestConnection`: Used for testing purposes.
+
+- **Data Initialization Options**: The `"DataInit"` section provides options for database initialization:
+  - `DropDatabase`: If set to `true`, the database will be dropped and recreated.
+  - `MigrateDatabase`: If set to `true`, the database will be migrated to the latest version.
+  - `SeedIdentity`: If set to `true`, identity data (such as users) will be seeded.õ
+  - `SeedData`: If set to `true`, additional data will be seeded into the database.
+
+
+### Setting Up PostgreSQL in Docker
 
 You can use the provided `docker-compose.yaml` file to quickly set up a PostgreSQL database for the application. Ensure you have Docker and Docker Compose installed, then run the following command in the root directory of the project:
 
