@@ -30,6 +30,7 @@ COPY App.DTO.DAL/*.csproj ./App.DTO.DAL/
 COPY App.DTO.Public/*.csproj ./App.DTO.Public/
 COPY App.Public/*.csproj ./App.Public/
 COPY App.Test/*.csproj ./App.Test/
+COPY App.Constants/*.csproj ./App.Constants/
 COPY WebApp/*.csproj ./WebApp/
 
 RUN dotnet restore
@@ -58,11 +59,18 @@ COPY App.DTO.DAL/. ./App.DTO.DAL/
 COPY App.DTO.Public/. ./App.DTO.Public/
 COPY App.Public/. ./App.Public/
 COPY App.Test/. ./App.Test/
+COPY App.Constants/. ./App.Constants/
 COPY WebApp/. ./WebApp/
 
 # Copy seed data
 COPY App.DAL.EF/Seeding/SeedData/ /app/App.DAL.EF/Seeding/SeedData/
 
+
+# Run tests
+WORKDIR /src/App.Test
+RUN dotnet test
+
+# Build the application
 WORKDIR /src/WebApp
 RUN dotnet publish -c Release -o out
 

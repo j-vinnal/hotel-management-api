@@ -2,6 +2,11 @@
 
 This repository contains the Hotel Management API, a robust and scalable solution for managing hotel operations. The project is structured using a layered architecture, promoting modularity, maintainability, and testability.
 
+## API and Frontend Access
+
+- **Swagger API Documentation**: Access the API documentation [here](https://hotelx-api-c9aeeebgcrbde7gt.northeurope-01.azurewebsites.net/swagger/index.html).
+- **Next.js Frontend**: Access the frontend hosted in Azure [here](https://hotel-x.azurewebsites.net/).
+
 ## Table of Contents
 
 - [Project Structure](#project-structure)
@@ -14,6 +19,7 @@ This repository contains the Hotel Management API, a robust and scalable solutio
 - [Seeded Users](#seeded-users)
 - [Contributing](#contributing)
 - [License](#license)
+- [Docker Guide](#docker-guide)
 
 ## X-Road Protocol Implementation
 
@@ -115,6 +121,10 @@ This command will start a PostgreSQL container with the necessary configuration.
 ```bash
 docker-compose down
 ```
+
+## Docker Guide
+
+For details on building and pushing Docker images, refer to the [Dockerfile](Dockerfile) and [DOCKER_GUIDE.md](DOCKER_GUIDE.md).
 
 ## Contributing
 
