@@ -50,6 +50,7 @@ public class RoomsControllerTest : IClassFixture<CustomWebApplicationFactory<Pro
             HttpMethod.Get,
             $"/api/v1.0/Rooms?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}"
         );
+        request.Headers.Add("X-Road-Client", "EE/GOV/12345678/test");
         var response = await _client.SendAsync(request);
 
         // Assert: Check response
@@ -90,6 +91,7 @@ public class RoomsControllerTest : IClassFixture<CustomWebApplicationFactory<Pro
             HttpMethod.Get,
             $"/api/v1.0/Rooms?startDate={startDate:yyyy-MM-dd}&endDate={endDate:yyyy-MM-dd}"
         );
+        request.Headers.Add("X-Road-Client", "EE/GOV/12345678/test");
         var response = await _client.SendAsync(request);
 
         // Assert: Check response

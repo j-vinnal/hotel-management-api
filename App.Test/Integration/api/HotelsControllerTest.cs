@@ -34,6 +34,7 @@ public class HotelsControllerTest : IClassFixture<CustomWebApplicationFactory<Pr
         // Act: Request all hotels
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1.0/Hotels");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+        request.Headers.Add("X-Road-Client", "EE/GOV/12345678/test");
         var response = await _client.SendAsync(request);
 
         // Assert: Check response
@@ -46,22 +47,28 @@ public class HotelsControllerTest : IClassFixture<CustomWebApplicationFactory<Pr
     [Fact]
     public async Task GuestCannotViewAllHotels()
     {
-        // Arrange: Log in as admin and get JWT
+        // Arrange: Log in as guest and get JWT
         var jwt = await GetJwtForUser(GuestEmail, GuestPassword);
 
         // Act: Request all hotels
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1.0/Hotels");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+        request.Headers.Add("X-Road-Client", "EE/GOV/12345678/test");
         var response = await _client.SendAsync(request);
 
         // Assert: Check response
-
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     private async Task<string> GetJwtForUser(string email, string password)
     {
-        var response = await _client.PostAsJsonAsync("/api/v1.0/identity/Account/Login", new { email, password });
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1.0/identity/Account/Login")
+        {
+            Content = JsonContent.Create(new { email, password }),
+        };
+        request.Headers.Add("X-Road-Client", "EE/GOV/12345678/test");
+
+        var response = await _client.SendAsync(request);
         response.EnsureSuccessStatusCode();
 
         var contentStr = await response.Content.ReadAsStringAsync();

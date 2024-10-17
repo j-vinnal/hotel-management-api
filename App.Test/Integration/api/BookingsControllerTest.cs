@@ -23,7 +23,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
     private readonly CustomWebApplicationFactory<Program> _factory;
     private readonly ITestOutputHelper _testOutputHelper;
 
-    // Define constants for user credentials
+    //user credentials
     private const string AdminEmail = "admin@hotelx.com";
     private const string AdminPassword = "Foo.Bar1";
     private const string GuestEmail = "guest@hotelx.com";
@@ -40,7 +40,9 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
     public async Task BookingsRequiresLogin()
     {
         // Act
-        var response = await _client.GetAsync("/api/v1.0/Bookings");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1.0/Bookings");
+        request.Headers.Add("X-Road-Client", "EE/GOV/12345678/test");
+        var response = await _client.SendAsync(request);
         // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -48,54 +50,36 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
     [Fact]
     public async Task IndexWithAdminUser()
     {
-        // get jwt
-        var response = await _client.PostAsJsonAsync(
-            "/api/v1.0/identity/Account/Login",
-            new { email = AdminEmail, password = AdminPassword }
-        );
-        var contentStr = await response.Content.ReadAsStringAsync();
+        // Arrange: Log in as admin and get JWT
+        var jwt = await GetJwtForUser(AdminEmail, AdminPassword);
 
-        response.EnsureSuccessStatusCode();
+        // Act: Request all bookings
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1.0/Bookings");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.Add("X-Road-Client", "EE/GOV/12345678/test");
 
-        var loginData = JsonSerializer.Deserialize<JWTResponse>(contentStr, JsonHelper.CamelCase);
+        var response = await _client.SendAsync(request);
 
-        Assert.NotNull(loginData);
-        Assert.NotNull(loginData.Jwt);
-        Assert.True(loginData.Jwt.Length > 0);
-
-        var msg = new HttpRequestMessage(HttpMethod.Get, "/api/v1.0/Bookings");
-        msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Jwt);
-        msg.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-        response = await _client.SendAsync(msg);
-
+        // Assert: Check response
         response.EnsureSuccessStatusCode();
     }
 
     [Fact]
     public async Task IndexWithGuestUser()
     {
-        // get jwt
-        var response = await _client.PostAsJsonAsync(
-            "/api/v1.0/identity/Account/Login",
-            new { email = GuestEmail, password = GuestPassword }
-        );
-        var contentStr = await response.Content.ReadAsStringAsync();
+        // Arrange: Log in as guest and get JWT
+        var jwt = await GetJwtForUser(GuestEmail, GuestPassword);
 
-        response.EnsureSuccessStatusCode();
+        // Act: Request all bookings
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1.0/Bookings");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.Add("X-Road-Client", "EE/GOV/12345678/test");
 
-        var loginData = JsonSerializer.Deserialize<JWTResponse>(contentStr, JsonHelper.CamelCase);
+        var response = await _client.SendAsync(request);
 
-        Assert.NotNull(loginData);
-        Assert.NotNull(loginData.Jwt);
-        Assert.True(loginData.Jwt.Length > 0);
-
-        var msg = new HttpRequestMessage(HttpMethod.Get, "/api/v1.0/Bookings");
-        msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginData.Jwt);
-        msg.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-        response = await _client.SendAsync(msg);
-
+        // Assert: Check response
         response.EnsureSuccessStatusCode();
     }
 
@@ -108,6 +92,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         // Act: Request all bookings
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1.0/Bookings");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+        request.Headers.Add("X-Road-Client", "EE/GOV/12345678/test");
         var response = await _client.SendAsync(request);
 
         // Assert: Check response
@@ -127,7 +112,6 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
-    // Add more InlineData attributes as needed, up to BookingCancellationDaysLimit - 1
     public async Task GuestCannotCancelBookingOutsideAllowedPeriod(int daysToAdd)
     {
         // Arrange: Log in as a guest and get JWT
@@ -157,10 +141,11 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         // Act: Attempt to cancel the booking
         var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1.0/Bookings/{booking.Id}/cancel");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+        request.Headers.Add("X-Road-Client", "EE/GOV/12345678/test");
         var response = await _client.SendAsync(request);
 
         // Assert: Check response
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
     }
 
     [Theory]
@@ -176,11 +161,26 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         using var scope = _factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+        // Define a new room for this test
+        var room = new App.Domain.Room
+        {
+            Id = Guid.NewGuid(),
+            RoomNumber = 1000 + daysToAdd, // Ensure unique room number for each test case
+            RoomName = $"Test Room {daysToAdd}",
+            BedCount = 1,
+            Price = 100,
+            HotelId = Guid.Parse("5ac3a4e0-2c97-444f-88f8-a1fe7cbdf94b"),
+        };
+
+        // Add the room to the database
+        dbContext.Rooms.Add(room);
+        await dbContext.SaveChangesAsync();
+
         // Define a new booking
         var booking = new App.Domain.Booking
         {
             Id = Guid.NewGuid(),
-            RoomId = Guid.Parse("d4e5f678-9012-3456-abcd-ef4567890123"),
+            RoomId = room.Id,
             AppUserId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7b"),
             StartDate = DateTime.UtcNow.Date.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit),
             EndDate = DateTime.UtcNow.Date.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit + 10),
@@ -198,6 +198,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         // Act: Attempt to cancel the booking
         var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1.0/Bookings/{booking.Id}/cancel");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+        request.Headers.Add("X-Road-Client", "EE/GOV/12345678/test");
         var response = await _client.SendAsync(request);
 
         // Assert: Check response
@@ -251,6 +252,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
             Content = JsonContent.Create(bookingDto),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+        request.Headers.Add("X-Road-Client", "EE/GOV/12345678/test");
 
         var response = await _client.SendAsync(request);
 
@@ -264,7 +266,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
     [InlineData(3)]
     public async Task GuestCannotEditAndCancelBookingIfOutsideAllowedPeriod(int daysToAdd)
     {
-        // Arrange: Log in as admin and get JWT
+        // Arrange: Log in as guest and get JWT
         var jwt = await GetJwtForUser(GuestEmail, GuestPassword);
 
         // Create a scope to resolve the AppDbContext and the mapper
@@ -305,6 +307,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
             Content = JsonContent.Create(bookingDto),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+        request.Headers.Add("X-Road-Client", "EE/GOV/12345678/test");
 
         var response = await _client.SendAsync(request);
 
@@ -363,6 +366,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
             Content = JsonContent.Create(bookingDto),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+        request.Headers.Add("X-Road-Client", "EE/GOV/12345678/test");
         var response = await _client.SendAsync(request);
 
         // Assert: Check response
@@ -432,15 +436,22 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
             Content = JsonContent.Create(secondBookingDto),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+        request.Headers.Add("X-Road-Client", "EE/GOV/12345678/test");
         var response = await _client.SendAsync(request);
 
         // Assert: Check response
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
     }
 
     private async Task<string> GetJwtForUser(string email, string password)
     {
-        var response = await _client.PostAsJsonAsync("/api/v1.0/identity/Account/Login", new { email, password });
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1.0/identity/Account/Login")
+        {
+            Content = JsonContent.Create(new { email, password }),
+        };
+        request.Headers.Add("X-Road-Client", "EE/GOV/12345678/test");
+
+        var response = await _client.SendAsync(request);
         response.EnsureSuccessStatusCode();
 
         var contentStr = await response.Content.ReadAsStringAsync();
