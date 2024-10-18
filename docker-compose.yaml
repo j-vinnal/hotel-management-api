@@ -1,14 +1,14 @@
 version: '3.9'
 
 services:
-  hotel-db:
-    container_name: hotel-db
+  hotelx-db:
+    container_name: hotelx-db
     image: 'postgres:16'
     restart: on-failure
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=hotel-db
+      - POSTGRES_DB=hotelx-db
     logging:
       options:
         max-size: 10m
@@ -28,9 +28,9 @@ services:
         # external:internal
         - "8000:80"
     depends_on: 
-      - hotel-db
+      - hotelx-db
     environment:
-      - ConnectionStrings__DefaultConnection=Host=hotel-db;Database=hotel-db;Username=postgres;Password=postgres
+      - ConnectionStrings__DefaultConnection=Host=hotelx-db;Database=hotel-db;Username=postgres;Password=postgres
       - DOTNET_RUNNING_IN_CONTAINER=true
 
 volumes:
