@@ -23,6 +23,7 @@ services:
     container_name: hotel-x
     build:
       dockerfile: Dockerfile
+    restart: on-failure
     ports: 
         # external:internal
         - "8000:80"
