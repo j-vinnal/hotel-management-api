@@ -29,6 +29,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
     private const string GuestEmail = "guest@hotelx.com";
     private const string GuestPassword = "Guest.Pass1";
 
+    
     public BookingsControllerTest(CustomWebApplicationFactory<Program> factory, ITestOutputHelper testOutputHelper)
     {
         _factory = factory;
@@ -152,6 +153,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
+    [InlineData(3)]
     public async Task GuestCanCancelBookingWithinAllowedPeriod(int daysToAdd)
     {
         // Arrange: Log in as a guest and get JWT
@@ -165,7 +167,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         var room = new App.Domain.Room
         {
             Id = Guid.NewGuid(),
-            RoomNumber = 1000 + daysToAdd, // Ensure unique room number for each test case
+            RoomNumber = 1000 + daysToAdd,
             RoomName = $"Test Room {daysToAdd}",
             BedCount = 1,
             Price = 100,
@@ -182,14 +184,14 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
             Id = Guid.NewGuid(),
             RoomId = room.Id,
             AppUserId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7b"),
-            StartDate = DateTime.UtcNow.Date.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit),
-            EndDate = DateTime.UtcNow.Date.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit + 10),
+            StartDate = DateTime.UtcNow.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit).AddMinutes(15),
+            EndDate = DateTime.UtcNow.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit + 10),
             IsCancelled = false,
         };
 
         _testOutputHelper.WriteLine($"Booking Start Date: {booking.StartDate}");
 
-        Assert.True(booking.StartDate >= DateTime.UtcNow.Date.AddDays(BusinessConstants.BookingCancellationDaysLimit));
+        Assert.True(booking.StartDate >= DateTime.UtcNow.AddDays(BusinessConstants.BookingCancellationDaysLimit));
 
         // Add the booking to the database
         dbContext.Bookings.Add(booking);
@@ -225,8 +227,8 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
             Id = Guid.NewGuid(),
             RoomId = Guid.Parse("d4e5f678-9012-3456-abcd-ef4567890123"),
             AppUserId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7a"),
-            StartDate = DateTime.UtcNow.Date.AddDays(BusinessConstants.BookingCancellationDaysLimit - daysToAdd),
-            EndDate = DateTime.UtcNow.Date.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit + 11),
+            StartDate = DateTime.UtcNow.AddDays(BusinessConstants.BookingCancellationDaysLimit - daysToAdd),
+            EndDate = DateTime.UtcNow.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit + 11),
             IsCancelled = false,
         };
 
@@ -237,8 +239,8 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         await dbContext.SaveChangesAsync();
 
         // Check if the booking is outside the allowed cancellation period
-        var dateOnly = DateTime.UtcNow.Date;
-        var canCancel = booking.StartDate.Date >= dateOnly.AddDays(BusinessConstants.BookingCancellationDaysLimit);
+        var now = DateTime.UtcNow;
+        var canCancel = booking.StartDate >= now.AddDays(BusinessConstants.BookingCancellationDaysLimit);
         Assert.False(canCancel);
 
         // Map the booking entity to the DTO
@@ -280,8 +282,8 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
             Id = Guid.NewGuid(),
             RoomId = Guid.Parse("d4e5f678-9012-3456-abcd-ef4567890123"),
             AppUserId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7a"),
-            StartDate = DateTime.UtcNow.Date.AddDays(BusinessConstants.BookingCancellationDaysLimit - daysToAdd),
-            EndDate = DateTime.UtcNow.Date.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit + 11),
+            StartDate = DateTime.UtcNow.AddDays(BusinessConstants.BookingCancellationDaysLimit - daysToAdd),
+            EndDate = DateTime.UtcNow.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit + 11),
             IsCancelled = false,
         };
 
@@ -292,8 +294,8 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         await dbContext.SaveChangesAsync();
 
         // Check if the booking is outside the allowed cancellation period
-        var dateOnly = DateTime.UtcNow.Date;
-        var canCancel = booking.StartDate.Date >= dateOnly.AddDays(BusinessConstants.BookingCancellationDaysLimit);
+        var now = DateTime.UtcNow;
+        var canCancel = booking.StartDate >= now.AddDays(BusinessConstants.BookingCancellationDaysLimit);
         Assert.False(canCancel);
 
         // Map the booking entity to the DTO
@@ -341,12 +343,12 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         await dbContext.SaveChangesAsync();
 
         // Define the booking details
-        var startDate = DateTime.UtcNow.AddDays(300).Date;
-        var endDate = DateTime.UtcNow.AddDays(350).Date;
+        var startDate = DateTime.UtcNow.AddDays(3);
+        var endDate = DateTime.UtcNow.AddDays(5);
 
         // Ensure the room is free for the specified period
         var isRoomBooked = await dbContext.Bookings.AnyAsync(b =>
-            b.RoomId == room.Id && !b.IsCancelled && b.StartDate.Date <= endDate && startDate <= b.EndDate.Date
+            b.RoomId == room.Id && !b.IsCancelled && b.StartDate <= endDate && startDate <= b.EndDate
         );
 
         Assert.False(isRoomBooked, "Room is already booked for the specified period.");
@@ -374,8 +376,8 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         var createdBooking = await response.Content.ReadFromJsonAsync<Booking>();
         Assert.NotNull(createdBooking);
         Assert.Equal(room.Id, createdBooking.RoomId);
-        Assert.Equal(startDate, createdBooking.StartDate.Date);
-        Assert.Equal(endDate, createdBooking.EndDate.Date);
+        Assert.Equal(startDate, createdBooking.StartDate);
+        Assert.Equal(endDate, createdBooking.EndDate);
     }
 
     [Fact]
@@ -404,8 +406,8 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         await dbContext.SaveChangesAsync();
 
         // Define the first booking
-        var startDate = DateTime.UtcNow.AddDays(10).Date;
-        var endDate = DateTime.UtcNow.AddDays(15).Date;
+        var startDate = DateTime.UtcNow.AddDays(10);
+        var endDate = DateTime.UtcNow.AddDays(15);
 
         var firstBooking = new App.Domain.Booking
         {

@@ -24,7 +24,7 @@ public class RoomsControllerTest : IClassFixture<CustomWebApplicationFactory<Pro
     {
         // Arrange: Define the date range for the room availability check
         var startDate = DateTime.UtcNow.AddDays(5);
-        var endDate = DateTime.UtcNow.AddDays(100);
+        var endDate = DateTime.UtcNow.AddDays(10);
 
         // Create a scope to resolve the AppDbContext
         using var scope = _factory.Services.CreateScope();

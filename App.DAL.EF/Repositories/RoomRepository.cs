@@ -117,6 +117,7 @@ public class RoomRepository : BaseEntityRepository<Room, DTO.DAL.Room, AppDbCont
         //Applies date filters based on provided startDate and endDate.
         if (startDate.HasValue && endDate.HasValue)
         {
+            
             // Filter bookings that overlap with the specified date range
             bookedRoomIdsQuery = bookedRoomIdsQuery.Where(b => b.StartDate <= endDate && startDate <= b.EndDate);
         }

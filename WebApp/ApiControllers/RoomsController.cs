@@ -214,7 +214,7 @@ namespace WebApp.ApiControllers
         /// <param name="endDate">The end date of the booking.</param>
         private static void ValidateBookingDates(DateTime startDate, DateTime endDate)
         {
-            if (endDate < startDate)
+            if (endDate.Date < startDate.Date)
             {
                 throw new BadRequestException("End date cannot be earlier than start date.");
             }

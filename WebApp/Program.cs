@@ -215,7 +215,7 @@ app.UseAuthorization();
 
 
 
-app.UseMiddleware<DateTimeMiddleware>();
+//app.UseMiddleware<DateTimeMiddleware>();
 
 app.UseRequestLocalization(options:
     app.Services.GetService<IOptions<RequestLocalizationOptions>>()?.Value!

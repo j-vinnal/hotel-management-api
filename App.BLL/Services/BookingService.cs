@@ -34,13 +34,13 @@ public class BookingService : BaseEntityService<Booking, DTO.DAL.Booking, IBooki
     }
 
     /// <summary>
-    /// Determines if a booking can be canceled based on the start date.
+    /// Determines if a booking can be canceled based on the start datetime and the cancellation limit.
     /// </summary>
     /// <param name="booking">The booking to check.</param>
     /// <returns><c>true</c> if the booking can be canceled; otherwise, <c>false</c>.</returns>
     public bool CanCancelBooking(Booking booking)
     {
-        var dateOnly = DateTime.UtcNow.Date;
-        return booking.StartDate.Date >= dateOnly.AddDays(BusinessConstants.BookingCancellationDaysLimit);
+        var now = DateTime.UtcNow;
+        return booking.StartDate >= now.AddDays(BusinessConstants.BookingCancellationDaysLimit);
     }
 }

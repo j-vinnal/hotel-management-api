@@ -149,7 +149,7 @@ namespace WebApp.ApiControllers
 
                 ValidateBookingDates(bookingDto.StartDate, bookingDto.EndDate);
 
-                bool canBook = !await _bll.BookingService.IsRoomBookedAsync(
+                var canBook = !await _bll.BookingService.IsRoomBookedAsync(
                     bookingDto.RoomId,
                     bookingDto.StartDate,
                     bookingDto.EndDate,
