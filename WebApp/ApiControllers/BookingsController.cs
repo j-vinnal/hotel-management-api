@@ -149,14 +149,20 @@ namespace WebApp.ApiControllers
 
                 ValidateBookingDates(bookingDto.StartDate, bookingDto.EndDate);
 
-                var canBook = !await _bll.BookingService.IsRoomBookedAsync(
+                // Validate guest count
+                if (!await _bll.RoomService.IsGuestCountValidAsync(bookingDto.RoomId, bookingDto.GuestCount))
+                {
+                    throw new BadRequestException("Guest count exceeds the room's bed count.");
+                }
+
+                var isRoomBooked = await _bll.BookingService.IsRoomBookedAsync(
                     bookingDto.RoomId,
                     bookingDto.StartDate,
                     bookingDto.EndDate,
                     bookingDto.Id
                 );
 
-                if (!canBook)
+                if (isRoomBooked)
                 {
                     throw new BadRequestException(
                         $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}."
@@ -214,13 +220,19 @@ namespace WebApp.ApiControllers
 
                 ValidateBookingDates(bookingDto.StartDate, bookingDto.EndDate);
 
-                bool canBook = !await _bll.BookingService.IsRoomBookedAsync(
+                // Validate guest count
+                if (!await _bll.RoomService.IsGuestCountValidAsync(bookingDto.RoomId, bookingDto.GuestCount))
+                {
+                    throw new BadRequestException("Guest count exceeds the room's bed count.");
+                }
+
+                bool isRoomBooked = await _bll.BookingService.IsRoomBookedAsync(
                     bookingDto.RoomId,
                     bookingDto.StartDate,
                     bookingDto.EndDate
                 );
 
-                if (!canBook)
+                if (isRoomBooked)
                 {
                     throw new BadRequestException(
                         $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}."
@@ -325,9 +337,9 @@ namespace WebApp.ApiControllers
         /// <param name="endDate">The end date of the booking.</param>
         private static void ValidateBookingDates(DateTime startDate, DateTime endDate)
         {
-            if (endDate < startDate)
+            if (endDate <= startDate)
             {
-                throw new BadRequestException("End date cannot be earlier than start date.");
+                throw new BadRequestException("End date cannot be earlier or equal to start date.");
             }
         }
 

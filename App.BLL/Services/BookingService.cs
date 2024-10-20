@@ -43,4 +43,6 @@ public class BookingService : BaseEntityService<Booking, DTO.DAL.Booking, IBooki
         var now = DateTime.UtcNow;
         return booking.StartDate >= now.AddDays(BusinessConstants.BookingCancellationDaysLimit);
     }
+
+
 }

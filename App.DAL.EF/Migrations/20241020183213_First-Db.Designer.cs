@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace App.DAL.EF.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241015143920_First-Db")]
+    [Migration("20241020183213_First-Db")]
     partial class FirstDb
     {
         /// <inheritdoc />
@@ -42,6 +42,9 @@ namespace App.DAL.EF.Migrations
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("GuestCount")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsCancelled")
                         .HasColumnType("boolean");

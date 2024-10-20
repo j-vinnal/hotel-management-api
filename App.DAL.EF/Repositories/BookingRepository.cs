@@ -41,6 +41,7 @@ public class BookingRepository : BaseEntityRepository<Booking, App.DTO.DAL.Booki
                 QuestId = s.User.Id,
                 StartDate = s.StartDate,
                 EndDate = s.EndDate,
+                GuestCount = s.GuestCount,
                 IsCancelled = s.IsCancelled,
             });
 
@@ -49,6 +50,7 @@ public class BookingRepository : BaseEntityRepository<Booking, App.DTO.DAL.Booki
 
         return await query
             .OrderBy(p => p.StartDate)
+            .ThenBy(p => p.RoomNumber)
             .ThenBy(p => p.QuestFirstName)
             .ThenBy(p => p.QuestLastName)
             .ToListAsync();
@@ -77,6 +79,7 @@ public class BookingRepository : BaseEntityRepository<Booking, App.DTO.DAL.Booki
                 QuestId = s.User.Id,
                 StartDate = s.StartDate,
                 EndDate = s.EndDate,
+                GuestCount = s.GuestCount,
                 IsCancelled = s.IsCancelled,
             });
 

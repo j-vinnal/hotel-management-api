@@ -34,4 +34,11 @@ public class RoomService : BaseEntityService<Room, DTO.DAL.Room, IRoomRepository
             await Repository.GetAvailableRoomsAsync(startDate, endDate, guestCount, currentBookingId, noTracking)
         ).Select(e => EntityMapper.Map(e))!;
     }
+
+
+        public async Task<bool> IsGuestCountValidAsync(Guid roomId, int guestCount)
+    {
+        var room = await Repository.FindAsync(roomId);
+        return room != null && guestCount <= room.BedCount;
+    }
 }

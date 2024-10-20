@@ -244,6 +244,7 @@ namespace App.DAL.EF.Migrations
                     AppUserId = table.Column<Guid>(type: "uuid", nullable: false),
                     StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    GuestCount = table.Column<int>(type: "integer", nullable: false),
                     IsCancelled = table.Column<bool>(type: "boolean", nullable: false),
                     UpdatedBy = table.Column<string>(type: "text", nullable: true),
                     UpdatedAtDt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),

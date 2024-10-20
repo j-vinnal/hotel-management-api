@@ -13,6 +13,7 @@ public class Booking : IEntityId
     public Guid QuestId { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
+    public int GuestCount { get; set; }
     public bool IsCancelled { get; set; } = false;
     
 }

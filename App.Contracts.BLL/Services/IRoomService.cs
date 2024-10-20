@@ -7,4 +7,5 @@ namespace App.Contracts.BLL.Services;
 public interface IRoomService : IBaseEntityRepository<Room>, IRoomRepositoryCustom<Room>
 {
     // Define additional methods if needed
+        Task<bool> IsGuestCountValidAsync(Guid roomId, int guestCount);
 }

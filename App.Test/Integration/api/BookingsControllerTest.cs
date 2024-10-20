@@ -29,7 +29,6 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
     private const string GuestEmail = "guest@hotelx.com";
     private const string GuestPassword = "Guest.Pass1";
 
-    
     public BookingsControllerTest(CustomWebApplicationFactory<Program> factory, ITestOutputHelper testOutputHelper)
     {
         _factory = factory;
@@ -184,7 +183,9 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
             Id = Guid.NewGuid(),
             RoomId = room.Id,
             AppUserId = Guid.Parse("1c439aaf-10f3-4c7d-b884-740097bbdd7b"),
-            StartDate = DateTime.UtcNow.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit).AddMinutes(15),
+            StartDate = DateTime
+                .UtcNow.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit)
+                .AddMinutes(15),
             EndDate = DateTime.UtcNow.AddDays(daysToAdd + BusinessConstants.BookingCancellationDaysLimit + 10),
             IsCancelled = false,
         };

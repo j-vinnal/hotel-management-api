@@ -1,11 +1,13 @@
 using System.Net;
 using App.Contracts.BLL;
+using App.Domain.Identity;
 using App.DTO.Public.v1;
 using App.Public;
 using Asp.Versioning;
 using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Exceptions;
@@ -50,18 +52,15 @@ namespace WebApp.ApiControllers
         {
             try
             {
-                // Validate that both startDate and endDate are either both provided or both omitted
-                if (
-                    request is { StartDate: not null, EndDate: null }
-                    || request is { StartDate: null, EndDate: not null }
-                )
+                switch (request)
                 {
-                    throw new BadRequestException("Both startDate and endDate must be provided or not provided.");
-                }
-
-                if (request is { StartDate: not null, EndDate: not null })
-                {
-                    ValidateBookingDates(request.StartDate.Value, request.EndDate.Value);
+                    // Validate that both startDate and endDate are either both provided or both omitted
+                    case { StartDate: not null, EndDate: null }:
+                    case { StartDate: null, EndDate: not null }:
+                        throw new BadRequestException("Both startDate and endDate must be provided or not provided.");
+                    case { StartDate: not null, EndDate: not null }:
+                        ValidateBookingDates(request.StartDate.Value, request.EndDate.Value);
+                        break;
                 }
 
                 var rooms = await _bll.RoomService.GetAvailableRoomsAsync(

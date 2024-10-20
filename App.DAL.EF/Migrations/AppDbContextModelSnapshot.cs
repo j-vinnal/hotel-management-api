@@ -40,6 +40,9 @@ namespace App.DAL.EF.Migrations
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("GuestCount")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsCancelled")
                         .HasColumnType("boolean");
 

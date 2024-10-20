@@ -12,7 +12,6 @@ public interface IBaseEntityRepository<TEntity, TKey>
     where TKey : struct, IEquatable<TKey>
 {
     //TODO too expensive
-    //Have to think how to solve dropdown ViewData
     // IEnumerable<TEntity?> All();
 
     
