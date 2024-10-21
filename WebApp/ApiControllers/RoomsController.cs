@@ -50,33 +50,26 @@ namespace WebApp.ApiControllers
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/RoomService/GetRooms")]
         public async Task<ActionResult<IEnumerable<Room>>> GetRooms([FromQuery] RoomAvailabilityRequest request)
         {
-            try
+            switch (request)
             {
-                switch (request)
-                {
-                    // Validate that both startDate and endDate are either both provided or both omitted
-                    case { StartDate: not null, EndDate: null }:
-                    case { StartDate: null, EndDate: not null }:
-                        throw new BadRequestException("Both startDate and endDate must be provided or not provided.");
-                    case { StartDate: not null, EndDate: not null }:
-                        ValidateBookingDates(request.StartDate.Value, request.EndDate.Value);
-                        break;
-                }
-
-                var rooms = await _bll.RoomService.GetAvailableRoomsAsync(
-                    request.StartDate,
-                    request.EndDate,
-                    request.GuestCount,
-                    request.CurrentBookingId
-                );
-
-                var roomDtos = rooms.Select(r => _mapper.Map(r)).ToList();
-                return Ok(roomDtos);
+                // Validate that both startDate and endDate are either both provided or both omitted
+                case { StartDate: not null, EndDate: null }:
+                case { StartDate: null, EndDate: not null }:
+                    throw new BadRequestException("Both startDate and endDate must be provided or not provided.");
+                case { StartDate: not null, EndDate: not null }:
+                    ValidateBookingDates(request.StartDate.Value, request.EndDate.Value);
+                    break;
             }
-            catch (Exception ex)
-            {
-                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
-            }
+
+            var rooms = await _bll.RoomService.GetAvailableRoomsAsync(
+                request.StartDate,
+                request.EndDate,
+                request.GuestCount,
+                request.CurrentBookingId
+            );
+
+            var roomDtos = rooms.Select(r => _mapper.Map(r)).ToList();
+            return Ok(roomDtos);
         }
 
         /// <summary>
@@ -89,16 +82,9 @@ namespace WebApp.ApiControllers
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/RoomService/GetRoom")]
         public async Task<ActionResult<Room>> GetRoom(Guid id)
         {
-            try
-            {
-                var room = await _bll.RoomService.FindAsync(id) ?? throw new NotFoundException("Room not found");
+            var room = await _bll.RoomService.FindAsync(id) ?? throw new NotFoundException("Room not found");
 
-                return Ok(_mapper.Map(room));
-            }
-            catch (Exception ex)
-            {
-                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
-            }
+            return Ok(_mapper.Map(room));
         }
 
         /// <summary>
@@ -111,38 +97,31 @@ namespace WebApp.ApiControllers
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/RoomService/PutRoom")]
         public async Task<IActionResult> PutRoom(Guid id, Room roomDto)
         {
+            if (id != roomDto.Id)
+            {
+                throw new BadRequestException("Room ID does not match the ID in the request.");
+            }
+
+            var room = _mapper.Map(roomDto)!;
+            _bll.RoomService.Update(room);
+
             try
             {
-                if (id != roomDto.Id)
-                {
-                    throw new BadRequestException("Room ID does not match the ID in the request.");
-                }
-
-                var room = _mapper.Map(roomDto)!;
-                _bll.RoomService.Update(room);
-
-                try
-                {
-                    await _bll.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!await RoomExists(id))
-                    {
-                        throw new NotFoundException("Room not found");
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-
-                return NoContent();
+                await _bll.SaveChangesAsync();
             }
-            catch (Exception ex)
+            catch (DbUpdateConcurrencyException)
             {
-                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+                if (!await RoomExists(id))
+                {
+                    throw new NotFoundException("Room not found");
+                }
+                else
+                {
+                    throw;
+                }
             }
+
+            return NoContent();
         }
 
         /// <summary>
@@ -154,18 +133,11 @@ namespace WebApp.ApiControllers
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/RoomService/PostRoom")]
         public async Task<ActionResult<Room>> PostRoom(Room roomDto)
         {
-            try
-            {
-                var room = _mapper.Map(roomDto)!;
-                _bll.RoomService.Add(room);
-                await _bll.SaveChangesAsync();
+            var room = _mapper.Map(roomDto)!;
+            _bll.RoomService.Add(room);
+            await _bll.SaveChangesAsync();
 
-                return CreatedAtAction("GetRoom", new { id = room.Id }, _mapper.Map(room));
-            }
-            catch (Exception ex)
-            {
-                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
-            }
+            return CreatedAtAction("GetRoom", new { id = room.Id }, _mapper.Map(room));
         }
 
         /// <summary>
@@ -177,23 +149,16 @@ namespace WebApp.ApiControllers
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/RoomService/DeleteRoom")]
         public async Task<IActionResult> DeleteRoom(Guid id)
         {
-            try
+            var room = await _bll.RoomService.FindAsync(id);
+            if (room == null)
             {
-                var room = await _bll.RoomService.FindAsync(id);
-                if (room == null)
-                {
-                    throw new NotFoundException("Room not found");
-                }
-
-                _bll.RoomService.Remove(room);
-                await _bll.SaveChangesAsync();
-
-                return NoContent();
+                throw new NotFoundException("Room not found");
             }
-            catch (Exception ex)
-            {
-                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
-            }
+
+            _bll.RoomService.Remove(room);
+            await _bll.SaveChangesAsync();
+
+            return NoContent();
         }
 
         /// <summary>
@@ -217,28 +182,6 @@ namespace WebApp.ApiControllers
             {
                 throw new BadRequestException("End date cannot be earlier than start date.");
             }
-        }
-
-        /// <summary>
-        /// Handles X-Road specific errors.
-        /// </summary>
-        /// <param name="exception">The exception that occurred.</param>
-        /// <param name="errorType">The type of X-Road error.</param>
-        /// <returns>An ActionResult with the error details.</returns>
-        private JsonResult HandleXRoadError(Exception exception, string errorType)
-        {
-            var errorResponse = new
-            {
-                type = errorType,
-                message = exception.Message,
-                detail = Guid.NewGuid().ToString(),
-            };
-
-            Response.ContentType = "application/json";
-            Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-            Response.Headers.Append("X-Road-Error", errorType);
-
-            return new JsonResult(errorResponse);
         }
     }
 }

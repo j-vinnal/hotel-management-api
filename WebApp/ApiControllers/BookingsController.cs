@@ -1,4 +1,3 @@
-using System.Net;
 using App.Constants;
 using App.Contracts.BLL;
 using App.Domain.Identity;
@@ -55,38 +54,30 @@ namespace WebApp.ApiControllers
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/GetBookings")]
         public async Task<ActionResult<IEnumerable<Booking>>> GetBookings(bool viewAll = true)
         {
-            try
+            IEnumerable<App.DTO.BLL.Booking> bookings;
+
+            var userIdStr = _userManager.GetUserId(User) ?? throw new BadRequestException("User ID is not available.");
+
+            var userId = Guid.Parse(userIdStr);
+
+            if (User.IsInRole(RoleConstants.Admin))
             {
-                IEnumerable<App.DTO.BLL.Booking> bookings;
-
-                var userIdStr =
-                    _userManager.GetUserId(User) ?? throw new BadRequestException("User ID is not available.");
-
-                var userId = Guid.Parse(userIdStr);
-
-                if (User.IsInRole(RoleConstants.Admin))
+                if (viewAll)
                 {
-                    if (viewAll)
-                    {
-                        bookings = await _bll.BookingService.GetAllSortedAsync();
-                    }
-                    else
-                    {
-                        bookings = await _bll.BookingService.GetAllSortedAsync(userId);
-                    }
+                    bookings = await _bll.BookingService.GetAllSortedAsync();
                 }
                 else
                 {
                     bookings = await _bll.BookingService.GetAllSortedAsync(userId);
                 }
-
-                var bookingDtos = bookings.Select(b => _mapper.Map(b)).ToList();
-                return Ok(bookingDtos);
             }
-            catch (Exception ex)
+            else
             {
-                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+                bookings = await _bll.BookingService.GetAllSortedAsync(userId);
             }
+
+            var bookingDtos = bookings.Select(b => _mapper.Map(b)).ToList();
+            return Ok(bookingDtos);
         }
 
         /// <summary>
@@ -98,35 +89,28 @@ namespace WebApp.ApiControllers
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/GetBooking")]
         public async Task<ActionResult<Booking>> GetBooking(Guid id)
         {
-            try
+            App.DTO.BLL.Booking? booking;
+
+            if (User.IsInRole(RoleConstants.Admin))
             {
-                App.DTO.BLL.Booking? booking;
-
-                if (User.IsInRole(RoleConstants.Admin))
-                {
-                    booking = await _bll.BookingService.FindWithDetailsAsync(id);
-                }
-                else
-                {
-                    var userIdStr =
-                        _userManager.GetUserId(User) ?? throw new BadRequestException("User ID is not available.");
-
-                    var userId = Guid.Parse(userIdStr);
-
-                    booking = await _bll.BookingService.FindWithDetailsAsync(id, userId);
-                }
-
-                if (booking == null)
-                {
-                    throw new NotFoundException("Booking not found");
-                }
-
-                return Ok(_mapper.Map(booking));
+                booking = await _bll.BookingService.FindWithDetailsAsync(id);
             }
-            catch (Exception ex)
+            else
             {
-                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+                var userIdStr =
+                    _userManager.GetUserId(User) ?? throw new BadRequestException("User ID is not available.");
+
+                var userId = Guid.Parse(userIdStr);
+
+                booking = await _bll.BookingService.FindWithDetailsAsync(id, userId);
             }
+
+            if (booking == null)
+            {
+                throw new NotFoundException("Booking not found");
+            }
+
+            return Ok(_mapper.Map(booking));
         }
 
         /// <summary>
@@ -140,60 +124,53 @@ namespace WebApp.ApiControllers
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/PutBooking")]
         public async Task<IActionResult> PutBooking(Guid id, Booking bookingDto)
         {
+            if (id != bookingDto.Id)
+            {
+                throw new BadRequestException("Booking ID does not match the ID in the request.");
+            }
+
+            ValidateBookingDates(bookingDto.StartDate, bookingDto.EndDate);
+
+            // Validate guest count
+            if (!await _bll.RoomService.IsGuestCountValidAsync(bookingDto.RoomId, bookingDto.GuestCount))
+            {
+                throw new BadRequestException("Guest count exceeds the room's bed count.");
+            }
+
+            var isRoomBooked = await _bll.BookingService.IsRoomBookedAsync(
+                bookingDto.RoomId,
+                bookingDto.StartDate,
+                bookingDto.EndDate,
+                bookingDto.Id
+            );
+
+            if (isRoomBooked)
+            {
+                throw new BadRequestException(
+                    $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}."
+                );
+            }
+
+            var booking = _mapper.Map(bookingDto)!;
+            _bll.BookingService.Update(booking);
+
             try
             {
-                if (id != bookingDto.Id)
-                {
-                    throw new BadRequestException("Booking ID does not match the ID in the request.");
-                }
-
-                ValidateBookingDates(bookingDto.StartDate, bookingDto.EndDate);
-
-                // Validate guest count
-                if (!await _bll.RoomService.IsGuestCountValidAsync(bookingDto.RoomId, bookingDto.GuestCount))
-                {
-                    throw new BadRequestException("Guest count exceeds the room's bed count.");
-                }
-
-                var isRoomBooked = await _bll.BookingService.IsRoomBookedAsync(
-                    bookingDto.RoomId,
-                    bookingDto.StartDate,
-                    bookingDto.EndDate,
-                    bookingDto.Id
-                );
-
-                if (isRoomBooked)
-                {
-                    throw new BadRequestException(
-                        $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}."
-                    );
-                }
-
-                var booking = _mapper.Map(bookingDto)!;
-                _bll.BookingService.Update(booking);
-
-                try
-                {
-                    await _bll.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!await BookingExists(id))
-                    {
-                        throw new NotFoundException("Booking not found");
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-
-                return NoContent();
+                await _bll.SaveChangesAsync();
             }
-            catch (Exception ex)
+            catch (DbUpdateConcurrencyException)
             {
-                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+                if (!await BookingExists(id))
+                {
+                    throw new NotFoundException("Booking not found");
+                }
+                else
+                {
+                    throw;
+                }
             }
+
+            return NoContent();
         }
 
         /// <summary>
@@ -208,47 +185,40 @@ namespace WebApp.ApiControllers
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/PostBooking")]
         public async Task<ActionResult<Booking>> PostBooking(Booking bookingDto)
         {
-            try
+            if (!User.IsInRole(RoleConstants.Admin))
             {
-                if (!User.IsInRole(RoleConstants.Admin))
-                {
-                    var userIdStr =
-                        _userManager.GetUserId(User) ?? throw new BadRequestException("User ID is not available.");
+                var userIdStr =
+                    _userManager.GetUserId(User) ?? throw new BadRequestException("User ID is not available.");
 
-                    bookingDto.QuestId = Guid.Parse(userIdStr);
-                }
+                bookingDto.QuestId = Guid.Parse(userIdStr);
+            }
 
-                ValidateBookingDates(bookingDto.StartDate, bookingDto.EndDate);
+            ValidateBookingDates(bookingDto.StartDate, bookingDto.EndDate);
 
-                // Validate guest count
-                if (!await _bll.RoomService.IsGuestCountValidAsync(bookingDto.RoomId, bookingDto.GuestCount))
-                {
-                    throw new BadRequestException("Guest count exceeds the room's bed count.");
-                }
+            // Validate guest count
+            if (!await _bll.RoomService.IsGuestCountValidAsync(bookingDto.RoomId, bookingDto.GuestCount))
+            {
+                throw new BadRequestException("Guest count exceeds the room's bed count.");
+            }
 
-                bool isRoomBooked = await _bll.BookingService.IsRoomBookedAsync(
-                    bookingDto.RoomId,
-                    bookingDto.StartDate,
-                    bookingDto.EndDate
+            bool isRoomBooked = await _bll.BookingService.IsRoomBookedAsync(
+                bookingDto.RoomId,
+                bookingDto.StartDate,
+                bookingDto.EndDate
+            );
+
+            if (isRoomBooked)
+            {
+                throw new BadRequestException(
+                    $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}."
                 );
-
-                if (isRoomBooked)
-                {
-                    throw new BadRequestException(
-                        $"Room {bookingDto.RoomNumber} is already booked for the selected dates {bookingDto.StartDate:dd.MM.yyyy} - {bookingDto.EndDate:dd.MM.yyyy}."
-                    );
-                }
-
-                var booking = _mapper.Map(bookingDto)!;
-                _bll.BookingService.Add(booking);
-                await _bll.SaveChangesAsync();
-
-                return CreatedAtAction("GetBooking", new { id = booking.Id }, _mapper.Map(booking));
             }
-            catch (Exception ex)
-            {
-                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
-            }
+
+            var booking = _mapper.Map(bookingDto)!;
+            _bll.BookingService.Add(booking);
+            await _bll.SaveChangesAsync();
+
+            return CreatedAtAction("GetBooking", new { id = booking.Id }, _mapper.Map(booking));
         }
 
         /// <summary>
@@ -260,36 +230,28 @@ namespace WebApp.ApiControllers
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/CancelBooking")]
         public async Task<IActionResult> CancelBooking(Guid id)
         {
-            try
+            var userIdStr = _userManager.GetUserId(User) ?? throw new BadRequestException("User ID is not available.");
+
+            var userId = Guid.Parse(userIdStr);
+
+            var booking = await _bll.BookingService.FindAsync(id, userId);
+
+            if (booking == null)
             {
-                var userIdStr =
-                    _userManager.GetUserId(User) ?? throw new BadRequestException("User ID is not available.");
-
-                var userId = Guid.Parse(userIdStr);
-
-                var booking = await _bll.BookingService.FindAsync(id, userId);
-
-                if (booking == null)
-                {
-                    throw new NotFoundException("Booking not found");
-                }
-
-                if (_bll.BookingService.CanCancelBooking(booking))
-                {
-                    booking.IsCancelled = true;
-                    _bll.BookingService.Update(booking);
-                    await _bll.SaveChangesAsync();
-
-                    return NoContent();
-                }
-                throw new BadRequestException(
-                    $"Booking can only be cancelled within {BusinessConstants.BookingCancellationDaysLimit} days of the start date."
-                );
+                throw new NotFoundException("Booking not found");
             }
-            catch (Exception ex)
+
+            if (_bll.BookingService.CanCancelBooking(booking))
             {
-                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+                booking.IsCancelled = true;
+                _bll.BookingService.Update(booking);
+                await _bll.SaveChangesAsync();
+
+                return NoContent();
             }
+            throw new BadRequestException(
+                $"Booking can only be cancelled within {BusinessConstants.BookingCancellationDaysLimit} days of the start date."
+            );
         }
 
         /// <summary>
@@ -302,22 +264,15 @@ namespace WebApp.ApiControllers
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/DeleteBooking")]
         public async Task<IActionResult> DeleteBooking(Guid id)
         {
-            try
+            var booking = await _bll.BookingService.FindAsync(id);
+            if (booking == null)
             {
-                var booking = await _bll.BookingService.FindAsync(id);
-                if (booking == null)
-                {
-                    throw new NotFoundException("Booking not found");
-                }
+                throw new NotFoundException("Booking not found");
+            }
 
-                _bll.BookingService.Remove(booking);
-                await _bll.SaveChangesAsync();
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
-            }
+            _bll.BookingService.Remove(booking);
+            await _bll.SaveChangesAsync();
+            return NoContent();
         }
 
         /// <summary>
@@ -341,28 +296,6 @@ namespace WebApp.ApiControllers
             {
                 throw new BadRequestException("End date cannot be earlier or equal to start date.");
             }
-        }
-
-        /// <summary>
-        /// Handles X-Road specific errors.
-        /// </summary>
-        /// <param name="exception">The exception that occurred.</param>
-        /// <param name="errorType">The type of X-Road error.</param>
-        /// <returns>An ActionResult with the error details.</returns>
-        private JsonResult HandleXRoadError(Exception exception, string errorType)
-        {
-            var errorResponse = new
-            {
-                type = errorType,
-                message = exception.Message,
-                detail = Guid.NewGuid().ToString(),
-            };
-
-            Response.ContentType = "application/json";
-            Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-            Response.Headers.Append("X-Road-Error", errorType);
-
-            return new JsonResult(errorResponse);
         }
     }
 }

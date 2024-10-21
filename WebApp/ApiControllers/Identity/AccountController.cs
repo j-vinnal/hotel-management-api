@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 using App.DAL.EF;
 using App.Domain.Identity;
 using App.DTO.Public.v1;
@@ -71,83 +72,80 @@ public class AccountController : ControllerBase
         [FromQuery] int expiresInSeconds
     )
     {
-        try
+        const string emailPattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
+        if (!Regex.IsMatch(registrationData.Email, emailPattern))
         {
-            if (expiresInSeconds <= 0)
-                expiresInSeconds = int.MaxValue;
-            expiresInSeconds =
-                expiresInSeconds < _configuration.GetValue<int>("JWT:expiresInSeconds")
-                    ? expiresInSeconds
-                    : _configuration.GetValue<int>("JWT:expiresInSeconds");
-
-            var appUser = await _userManager.FindByEmailAsync(registrationData.Email);
-            if (appUser != null)
-            {
-                throw new BadRequestException($"User with email {registrationData.Email} is already registered");
-            }
-
-            var refreshToken = new AppRefreshToken();
-            appUser = new AppUser()
-            {
-                Email = registrationData.Email,
-                UserName = registrationData.Email,
-                FirstName = registrationData.Firstname,
-                LastName = registrationData.Lastname,
-                PersonalCode = registrationData.PersonalCode,
-                RefreshTokens = new List<AppRefreshToken>() { refreshToken },
-            };
-            refreshToken.AppUser = appUser;
-
-            var result = await _userManager.CreateAsync(appUser, registrationData.Password);
-            if (!result.Succeeded)
-            {
-                throw new BadRequestException(result.Errors.First().Description);
-            }
-
-            var addToRoleResult = await _userManager.AddToRoleAsync(appUser, RoleConstants.Guest);
-            if (!addToRoleResult.Succeeded)
-            {
-                throw new BadRequestException(addToRoleResult.Errors.First().Description);
-            }
-
-            result = await _userManager.AddClaimsAsync(
-                appUser,
-                new List<Claim>()
-                {
-                    new(ClaimTypes.GivenName, appUser.FirstName),
-                    new(ClaimTypes.Surname, appUser.LastName),
-                    new("PersonalCode", registrationData.PersonalCode),
-                }
-            );
-
-            if (!result.Succeeded)
-            {
-                throw new BadRequestException(result.Errors.First().Description);
-            }
-
-            appUser = await _userManager.FindByEmailAsync(appUser.Email);
-            if (appUser == null)
-            {
-                throw new NotFoundException(
-                    $"User with email {registrationData.Email} is not found after registration"
-                );
-            }
-
-            var claimsPrincipal = await _signInManager.CreateUserPrincipalAsync(appUser);
-            var jwt = IdentityHelpers.GenerateJwt(
-                claimsPrincipal.Claims,
-                _configuration.GetValue<string>("JWT:key"),
-                _configuration.GetValue<string>("JWT:issuer"),
-                _configuration.GetValue<string>("JWT:audience"),
-                expiresInSeconds
-            );
-            var res = new JWTResponse() { Jwt = jwt, RefreshToken = refreshToken.RefreshToken };
-            return Ok(res);
+            throw new BadRequestException("Invalid email format");
         }
-        catch (Exception ex)
+
+        if (expiresInSeconds <= 0)
+            expiresInSeconds = int.MaxValue;
+        expiresInSeconds =
+            expiresInSeconds < _configuration.GetValue<int>("JWT:expiresInSeconds")
+                ? expiresInSeconds
+                : _configuration.GetValue<int>("JWT:expiresInSeconds");
+
+        var appUser = await _userManager.FindByEmailAsync(registrationData.Email);
+        if (appUser != null)
         {
-            return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+            throw new BadRequestException($"User with email {registrationData.Email} is already registered");
         }
+
+        var refreshToken = new AppRefreshToken();
+        appUser = new AppUser()
+        {
+            Email = registrationData.Email,
+            UserName = registrationData.Email,
+            FirstName = registrationData.Firstname,
+            LastName = registrationData.Lastname,
+            PersonalCode = registrationData.PersonalCode,
+            RefreshTokens = new List<AppRefreshToken>() { refreshToken },
+        };
+        refreshToken.AppUser = appUser;
+
+        var result = await _userManager.CreateAsync(appUser, registrationData.Password);
+        if (!result.Succeeded)
+        {
+            throw new BadRequestException(result.Errors.First().Description);
+        }
+
+        var addToRoleResult = await _userManager.AddToRoleAsync(appUser, RoleConstants.Guest);
+        if (!addToRoleResult.Succeeded)
+        {
+            throw new BadRequestException(addToRoleResult.Errors.First().Description);
+        }
+
+        result = await _userManager.AddClaimsAsync(
+            appUser,
+            new List<Claim>()
+            {
+                new(ClaimTypes.GivenName, appUser.FirstName),
+                new(ClaimTypes.Surname, appUser.LastName),
+                new("PersonalCode", registrationData.PersonalCode),
+            }
+        );
+
+        if (!result.Succeeded)
+        {
+            throw new BadRequestException(result.Errors.First().Description);
+        }
+
+        appUser = await _userManager.FindByEmailAsync(appUser.Email);
+        if (appUser == null)
+        {
+            throw new NotFoundException($"User with email {registrationData.Email} is not found after registration");
+        }
+
+        var claimsPrincipal = await _signInManager.CreateUserPrincipalAsync(appUser);
+        var jwt = IdentityHelpers.GenerateJwt(
+            claimsPrincipal.Claims,
+            _configuration.GetValue<string>("JWT:key"),
+            _configuration.GetValue<string>("JWT:issuer"),
+            _configuration.GetValue<string>("JWT:audience"),
+            expiresInSeconds
+        );
+        var res = new JWTResponse() { Jwt = jwt, RefreshToken = refreshToken.RefreshToken };
+        return Ok(res);
     }
 
     /// <summary>
@@ -160,65 +158,66 @@ public class AccountController : ControllerBase
     [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/AccountService/Login")]
     public async Task<ActionResult<JWTResponse>> Login([FromBody] LoginInfo loginData, [FromQuery] int expiresInSeconds)
     {
-        try
+        if (expiresInSeconds <= 0)
+            expiresInSeconds = int.MaxValue;
+        expiresInSeconds =
+            expiresInSeconds < _configuration.GetValue<int>("JWT:expiresInSeconds")
+                ? expiresInSeconds
+                : _configuration.GetValue<int>("JWT:expiresInSeconds");
+
+        // verify user
+        var appUser = await _userManager.FindByEmailAsync(loginData.Email);
+        if (appUser == null)
         {
-            if (expiresInSeconds <= 0)
-                expiresInSeconds = int.MaxValue;
-            expiresInSeconds =
-                expiresInSeconds < _configuration.GetValue<int>("JWT:expiresInSeconds")
-                    ? expiresInSeconds
-                    : _configuration.GetValue<int>("JWT:expiresInSeconds");
-
-            var appUser = await _userManager.FindByEmailAsync(loginData.Email);
-            if (appUser == null)
-            {
-                throw new NotFoundException("No account found with the provided email address");
-            }
-
-            var result = await _signInManager.CheckPasswordSignInAsync(appUser, loginData.Password, false);
-            if (!result.Succeeded)
-            {
-                throw new NotFoundException("The password you entered is incorrect");
-            }
-
-            var claimsPrincipal = await _signInManager.CreateUserPrincipalAsync(appUser);
-            if (claimsPrincipal == null)
-            {
-                throw new NotFoundException("Failed to generate user session");
-            }
-
-            if (!_context.Database.ProviderName!.Contains("InMemory"))
-            {
-                var deletedRows = await _context
-                    .AppRefreshTokens.Where(t =>
-                        t.AppUserId == appUser.Id
-                        && t.ExpirationDt < DateTime.UtcNow
-                        && (t.PreviousExpirationDt == null || t.PreviousExpirationDt < DateTime.UtcNow)
-                    )
-                    .ExecuteDeleteAsync();
-
-                _logger.LogInformation("Deleted {} refresh tokens", deletedRows);
-            }
-
-            var refreshToken = new AppRefreshToken() { AppUserId = appUser.Id };
-            _context.AppRefreshTokens.Add(refreshToken);
-            await _context.SaveChangesAsync();
-
-            var jwt = IdentityHelpers.GenerateJwt(
-                claimsPrincipal.Claims,
-                _configuration.GetValue<string>("JWT:key"),
-                _configuration.GetValue<string>("JWT:issuer"),
-                _configuration.GetValue<string>("JWT:audience"),
-                expiresInSeconds
-            );
-
-            var responseData = new JWTResponse() { Jwt = jwt, RefreshToken = refreshToken.RefreshToken };
-            return Ok(responseData);
+            // Brute-force attack mitigation
+            await Task.Delay(_rnd.Next(100, 1000));
+            throw new NotFoundException("No account found with the provided email address");
         }
-        catch (Exception ex)
+        // verify user
+        var result = await _signInManager.CheckPasswordSignInAsync(appUser, loginData.Password, false);
+        if (!result.Succeeded)
         {
-            return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+            // Brute-force attack mitigation
+            await Task.Delay(_rnd.Next(100, 1000));
+            throw new NotFoundException("The password you entered is incorrect");
         }
+
+        var claimsPrincipal = await _signInManager.CreateUserPrincipalAsync(appUser);
+        if (claimsPrincipal == null)
+        {
+            // Brute-force attack mitigation
+            await Task.Delay(_rnd.Next(100, 1000));
+            throw new NotFoundException("Failed to generate user session");
+        }
+
+        if (!_context.Database.ProviderName!.Contains("InMemory"))
+        {
+            // Remove expired tokens directly in the database
+            var deletedRows = await _context
+                .AppRefreshTokens.Where(t =>
+                    t.AppUserId == appUser.Id
+                    && t.ExpirationDt < DateTime.UtcNow
+                    && (t.PreviousExpirationDt == null || t.PreviousExpirationDt < DateTime.UtcNow)
+                )
+                .ExecuteDeleteAsync();
+
+            _logger.LogInformation("Deleted {} refresh tokens", deletedRows);
+        }
+
+        var refreshToken = new AppRefreshToken() { AppUserId = appUser.Id };
+        _context.AppRefreshTokens.Add(refreshToken);
+        await _context.SaveChangesAsync();
+
+        var jwt = IdentityHelpers.GenerateJwt(
+            claimsPrincipal.Claims,
+            _configuration.GetValue<string>("JWT:key"),
+            _configuration.GetValue<string>("JWT:issuer"),
+            _configuration.GetValue<string>("JWT:audience"),
+            expiresInSeconds
+        );
+
+        var responseData = new JWTResponse() { Jwt = jwt, RefreshToken = refreshToken.RefreshToken };
+        return Ok(responseData);
     }
 
     /// <summary>
@@ -234,111 +233,101 @@ public class AccountController : ControllerBase
         [FromQuery] int expiresInSeconds
     )
     {
+        if (expiresInSeconds <= 0)
+            expiresInSeconds = int.MaxValue;
+        expiresInSeconds =
+            expiresInSeconds < _configuration.GetValue<int>("JWT:expiresInSeconds")
+                ? expiresInSeconds
+                : _configuration.GetValue<int>("JWT:expiresInSeconds");
+
+        JwtSecurityToken? jwt;
+
         try
         {
-            if (expiresInSeconds <= 0)
-                expiresInSeconds = int.MaxValue;
-            expiresInSeconds =
-                expiresInSeconds < _configuration.GetValue<int>("JWT:expiresInSeconds")
-                    ? expiresInSeconds
-                    : _configuration.GetValue<int>("JWT:expiresInSeconds");
-
-            JwtSecurityToken? jwt;
-
-            try
+            jwt = new JwtSecurityTokenHandler().ReadJwtToken(tokenRefreshData.Jwt);
+            if (jwt == null)
             {
-                jwt = new JwtSecurityTokenHandler().ReadJwtToken(tokenRefreshData.Jwt);
-                if (jwt == null)
-                {
-                    throw new BadRequestException("No token");
-                }
+                throw new BadRequestException("No token");
             }
-            catch (Exception)
-            {
-                throw new BadRequestException("Invalid token format");
-            }
+        }
+        catch (Exception)
+        {
+            throw new BadRequestException("Invalid token format");
+        }
 
-            if (
-                !IdentityHelpers.ValidateJWT(
-                    tokenRefreshData.Jwt,
-                    _configuration.GetValue<string>("JWT:key"),
-                    _configuration.GetValue<string>("JWT:issuer"),
-                    _configuration.GetValue<string>("JWT:audience")
-                )
-            )
-            {
-                throw new BadRequestException("JWT validation fail");
-            }
-
-            var userEmail = jwt.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value;
-            if (userEmail == null)
-            {
-                throw new BadRequestException("No email in jwt");
-            }
-
-            var appUser = await _userManager.FindByEmailAsync(userEmail);
-            if (appUser == null)
-            {
-                throw new NotFoundException($"User with email {userEmail} not found");
-            }
-
-            await _context
-                .Entry(appUser)
-                .Collection(u => u.RefreshTokens!)
-                .Query()
-                .Where(x =>
-                    (x.RefreshToken == tokenRefreshData.RefreshToken && x.ExpirationDt > DateTime.UtcNow)
-                    || (
-                        x.PreviousRefreshToken == tokenRefreshData.RefreshToken
-                        && x.PreviousExpirationDt > DateTime.UtcNow
-                    )
-                )
-                .ToListAsync();
-
-            if (appUser.RefreshTokens == null || appUser.RefreshTokens.Count == 0)
-            {
-                throw new NotFoundException("RefreshTokens collection is null or empty");
-            }
-
-            if (appUser.RefreshTokens.Count != 1)
-            {
-                throw new NotFoundException("More than one valid refresh token found");
-            }
-
-            var claimsPrincipal = await _signInManager.CreateUserPrincipalAsync(appUser);
-            if (claimsPrincipal == null)
-            {
-                _logger.LogWarning("Could not get ClaimsPrincipal for user {}", userEmail);
-                throw new BadRequestException("User/Password problem");
-            }
-
-            var jwtResponseStr = IdentityHelpers.GenerateJwt(
-                claimsPrincipal.Claims,
+        if (
+            !IdentityHelpers.ValidateJWT(
+                tokenRefreshData.Jwt,
                 _configuration.GetValue<string>("JWT:key"),
                 _configuration.GetValue<string>("JWT:issuer"),
-                _configuration.GetValue<string>("JWT:audience"),
-                expiresInSeconds
-            );
-
-            var refreshToken = appUser.RefreshTokens.First();
-            if (refreshToken.RefreshToken == tokenRefreshData.RefreshToken)
-            {
-                refreshToken.PreviousRefreshToken = refreshToken.RefreshToken;
-                refreshToken.PreviousExpirationDt = DateTime.UtcNow.AddMinutes(1);
-
-                refreshToken.RefreshToken = Guid.NewGuid().ToString();
-                refreshToken.ExpirationDt = DateTime.UtcNow.AddDays(7);
-
-                await _context.SaveChangesAsync();
-            }
-
-            var res = new JWTResponse() { Jwt = jwtResponseStr, RefreshToken = refreshToken.RefreshToken };
-            return Ok(res);
-        }
-        catch (Exception ex)
+                _configuration.GetValue<string>("JWT:audience")
+            )
+        )
         {
-            return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+            throw new BadRequestException("JWT validation fail");
         }
+
+        var userEmail = jwt.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value;
+        if (userEmail == null)
+        {
+            throw new BadRequestException("No email in jwt");
+        }
+
+        var appUser = await _userManager.FindByEmailAsync(userEmail);
+        if (appUser == null)
+        {
+            throw new NotFoundException($"User with email {userEmail} not found");
+        }
+
+        await _context
+            .Entry(appUser)
+            .Collection(u => u.RefreshTokens!)
+            .Query()
+            .Where(x =>
+                (x.RefreshToken == tokenRefreshData.RefreshToken && x.ExpirationDt > DateTime.UtcNow)
+                || (x.PreviousRefreshToken == tokenRefreshData.RefreshToken && x.PreviousExpirationDt > DateTime.UtcNow)
+            )
+            .ToListAsync();
+
+        if (appUser.RefreshTokens == null || appUser.RefreshTokens.Count == 0)
+        {
+            throw new NotFoundException("RefreshTokens collection is null or empty");
+        }
+
+        if (appUser.RefreshTokens.Count != 1)
+        {
+            throw new NotFoundException("More than one valid refresh token found");
+        }
+
+        var claimsPrincipal = await _signInManager.CreateUserPrincipalAsync(appUser);
+        if (claimsPrincipal == null)
+        {
+            _logger.LogWarning("Could not get ClaimsPrincipal for user {}", userEmail);
+            throw new BadRequestException("User/Password problem");
+        }
+
+        var jwtResponseStr = IdentityHelpers.GenerateJwt(
+            claimsPrincipal.Claims,
+            _configuration.GetValue<string>("JWT:key"),
+            _configuration.GetValue<string>("JWT:issuer"),
+            _configuration.GetValue<string>("JWT:audience"),
+            expiresInSeconds
+        );
+
+        var refreshToken = appUser.RefreshTokens.First();
+        if (refreshToken.RefreshToken == tokenRefreshData.RefreshToken)
+        {
+            refreshToken.PreviousRefreshToken = refreshToken.RefreshToken;
+            refreshToken.PreviousExpirationDt = DateTime.UtcNow.AddMinutes(1);
+
+            refreshToken.RefreshToken = Guid.NewGuid().ToString();
+            refreshToken.ExpirationDt = DateTime.UtcNow.AddDays(7);
+
+            await _context.SaveChangesAsync();
+        }
+
+        var res = new JWTResponse() { Jwt = jwtResponseStr, RefreshToken = refreshToken.RefreshToken };
+        return Ok(res);
     }
 
     /// <summary>
@@ -351,60 +340,31 @@ public class AccountController : ControllerBase
     [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/AccountService/Logout")]
     public async Task<ActionResult> Logout([FromBody] LogoutInfo logout)
     {
-        try
+        var userIdStr = _userManager.GetUserId(User) ?? throw new BadRequestException("Invalid refresh token");
+        if (!Guid.TryParse(userIdStr, out var userId))
         {
-            var userIdStr = _userManager.GetUserId(User) ?? throw new BadRequestException("Invalid refresh token");
-            if (!Guid.TryParse(userIdStr, out var userId))
-            {
-                throw new BadRequestException("Deserialization error");
-            }
-
-            var appUser = await _context.Users.Where(u => u.Id == userId).SingleOrDefaultAsync();
-            if (appUser == null)
-            {
-                throw new NotFoundException("User/Password problem");
-            }
-
-            await _context
-                .Entry(appUser)
-                .Collection(u => u.RefreshTokens!)
-                .Query()
-                .Where(x => (x.RefreshToken == logout.RefreshToken) || (x.PreviousRefreshToken == logout.RefreshToken))
-                .ToListAsync();
-
-            foreach (var appRefreshToken in appUser.RefreshTokens!)
-            {
-                _context.AppRefreshTokens.Remove(appRefreshToken);
-            }
-
-            var deleteCount = await _context.SaveChangesAsync();
-            return Ok(new { TokenDeleteCount = deleteCount });
+            throw new BadRequestException("Deserialization error");
         }
-        catch (Exception ex)
+
+        var appUser = await _context.Users.Where(u => u.Id == userId).SingleOrDefaultAsync();
+        if (appUser == null)
         {
-            return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+            throw new NotFoundException("User/Password problem");
         }
-    }
 
-    /// <summary>
-    /// Handles X-Road specific errors.
-    /// </summary>
-    /// <param name="exception">The exception that occurred.</param>
-    /// <param name="errorType">The type of X-Road error.</param>
-    /// <returns>An ActionResult with the error details.</returns>
-    private JsonResult HandleXRoadError(Exception exception, string errorType)
-    {
-        var errorResponse = new
+        await _context
+            .Entry(appUser)
+            .Collection(u => u.RefreshTokens!)
+            .Query()
+            .Where(x => (x.RefreshToken == logout.RefreshToken) || (x.PreviousRefreshToken == logout.RefreshToken))
+            .ToListAsync();
+
+        foreach (var appRefreshToken in appUser.RefreshTokens!)
         {
-            type = errorType,
-            message = exception.Message,
-            detail = Guid.NewGuid().ToString(),
-        };
+            _context.AppRefreshTokens.Remove(appRefreshToken);
+        }
 
-        Response.ContentType = "application/json";
-        Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-        Response.Headers.Append("X-Road-Error", errorType);
-
-        return new JsonResult(errorResponse);
+        var deleteCount = await _context.SaveChangesAsync();
+        return Ok(new { TokenDeleteCount = deleteCount });
     }
 }

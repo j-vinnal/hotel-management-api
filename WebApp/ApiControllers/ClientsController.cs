@@ -44,16 +44,9 @@ namespace WebApp.ApiControllers
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/ClientService/GetClients")]
         public async Task<ActionResult<IEnumerable<Client>>> GetClients()
         {
-            try
-            {
-                var users = await _userManager.Users.OrderBy(u => u.FirstName).ToListAsync();
-                var clients = users.Select(u => _mapper.Map(u)).ToList();
-                return Ok(clients);
-            }
-            catch (Exception ex)
-            {
-                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
-            }
+            var users = await _userManager.Users.OrderBy(u => u.FirstName).ToListAsync();
+            var clients = users.Select(u => _mapper.Map(u)).ToList();
+            return Ok(clients);
         }
 
         /// <summary>
@@ -65,17 +58,10 @@ namespace WebApp.ApiControllers
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/ClientService/GetClient")]
         public async Task<ActionResult<Client>> GetClient(Guid id)
         {
-            try
-            {
-                var user =
-                    await _userManager.FindByIdAsync(id.ToString()) ?? throw new NotFoundException("Client not found");
-                var client = _mapper.Map(user);
-                return Ok(client);
-            }
-            catch (Exception ex)
-            {
-                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
-            }
+            var user =
+                await _userManager.FindByIdAsync(id.ToString()) ?? throw new NotFoundException("Client not found");
+            var client = _mapper.Map(user);
+            return Ok(client);
         }
 
         /// <summary>
@@ -88,54 +74,25 @@ namespace WebApp.ApiControllers
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/ClientService/UpdateClient")]
         public async Task<IActionResult> UpdateClient(Guid id, Client updatedUser)
         {
-            try
+            if (id != updatedUser.Id)
             {
-                if (id != updatedUser.Id)
-                {
-                    throw new BadRequestException("Client ID does not match the ID in the request.");
-                }
-
-                var user =
-                    await _userManager.FindByIdAsync(id.ToString()) ?? throw new NotFoundException("Client not found");
-
-                user.FirstName = updatedUser.FirstName;
-                user.LastName = updatedUser.LastName;
-                user.PersonalCode = updatedUser.PersonalCode;
-
-                var result = await _userManager.UpdateAsync(user);
-                if (!result.Succeeded)
-                {
-                    throw new BadRequestException("Failed to update client information.");
-                }
-
-                return NoContent();
+                throw new BadRequestException("Client ID does not match the ID in the request.");
             }
-            catch (Exception ex)
+
+            var user =
+                await _userManager.FindByIdAsync(id.ToString()) ?? throw new NotFoundException("Client not found");
+
+            user.FirstName = updatedUser.FirstName;
+            user.LastName = updatedUser.LastName;
+            user.PersonalCode = updatedUser.PersonalCode;
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
             {
-                return HandleXRoadError(ex, "Server.ServerProxy.InternalError");
+                throw new BadRequestException("Failed to update client information.");
             }
-        }
 
-        /// <summary>
-        /// Handles X-Road specific errors.
-        /// </summary>
-        /// <param name="exception">The exception that occurred.</param>
-        /// <param name="errorType">The type of X-Road error.</param>
-        /// <returns>An ActionResult with the error details.</returns>
-        private JsonResult HandleXRoadError(Exception exception, string errorType)
-        {
-            var errorResponse = new
-            {
-                type = errorType,
-                message = exception.Message,
-                detail = Guid.NewGuid().ToString(),
-            };
-
-            Response.ContentType = "application/json";
-            Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-            Response.Headers.Append("X-Road-Error", errorType);
-
-            return new JsonResult(errorResponse);
+            return NoContent();
         }
     }
 }
