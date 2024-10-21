@@ -22,6 +22,14 @@ public class XRoadExceptionFilter : IExceptionFilter
                 errorType = "Client.NotFound";
                 statusCode = (int)HttpStatusCode.NotFound;
                 break;
+            case Microsoft.EntityFrameworkCore.DbUpdateException:
+                errorType = "Server.ServerProxy.DatabaseError";
+                statusCode = (int)HttpStatusCode.InternalServerError;
+                break;
+            case HttpRequestException:
+                errorType = "Server.ServerProxy.NetworkError";
+                statusCode = (int)HttpStatusCode.ServiceUnavailable;
+                break;
             default:
                 errorType = "Server.ServerProxy.InternalError";
                 statusCode = (int)HttpStatusCode.InternalServerError;
@@ -40,21 +48,5 @@ public class XRoadExceptionFilter : IExceptionFilter
         context.HttpContext.Response.Headers.Append("X-Road-Error", errorType);
 
         context.Result = new JsonResult(errorResponse);
-    }
-}
-
-[Serializable]
-internal class BadRequestException : Exception
-{
-    public BadRequestException()
-    {
-    }
-
-    public BadRequestException(string? message) : base(message)
-    {
-    }
-
-    public BadRequestException(string? message, Exception? innerException) : base(message, innerException)
-    {
     }
 }

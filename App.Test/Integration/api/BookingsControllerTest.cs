@@ -145,7 +145,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         var response = await _client.SendAsync(request);
 
         // Assert: Check response
-        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Theory]
@@ -443,7 +443,7 @@ public class BookingsControllerTest : IClassFixture<CustomWebApplicationFactory<
         var response = await _client.SendAsync(request);
 
         // Assert: Check response
-        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     private async Task<string> GetJwtForUser(string email, string password)

@@ -4,6 +4,7 @@ namespace App.DTO.Public.v1.Identity;
 
 public class RegisterInfo
 {
+
     [StringLength(128, MinimumLength = 1, ErrorMessage = "Incorrect length")]
     public string Email { get; set; } = default!;
     
