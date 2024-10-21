@@ -40,7 +40,12 @@ namespace WebApp.ApiControllers
         /// Retrieves all clients.
         /// </summary>
         /// <returns>A list of clients.</returns>
+        /// <response code="200">Returns the list of clients.</response>
+        /// <response code="500">If an internal server error occurs.</response>
         [HttpGet]
+        [Produces("application/json")]
+        [ProducesResponseType<IEnumerable<Client>>(StatusCodes.Status200OK)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/ClientService/GetClients")]
         public async Task<ActionResult<IEnumerable<Client>>> GetClients()
         {
@@ -54,7 +59,14 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="id">The ID of the client to retrieve.</param>
         /// <returns>The client with the specified ID.</returns>
+        /// <response code="200">Returns the client with the specified ID.</response>
+        /// <response code="404">If the client is not found.</response>
+        /// <response code="500">If an internal server error occurs.</response>
         [HttpGet("{id:guid}")]
+        [Produces("application/json")]
+        [ProducesResponseType<Client>(StatusCodes.Status200OK)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status404NotFound)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/ClientService/GetClient")]
         public async Task<ActionResult<Client>> GetClient(Guid id)
         {
@@ -69,10 +81,20 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="id">The ID of the client to update.</param>
         /// <param name="updatedUser">The updated client information.</param>
-        /// <returns>No content if the update is successful.</returns>
+        /// <returns>The updated client information if successful.</returns>
+        /// <response code="200">If the client is successfully updated.</response>
+        /// <response code="400">If the client data is invalid.</response>
+        /// <response code="404">If the client is not found.</response>
+        /// <response code="500">If an internal server error occurs.</response>
         [HttpPut("{id:guid}")]
+        [Produces("application/json")]
+        [Consumes("application/json")]
+        [ProducesResponseType<Client>(StatusCodes.Status200OK)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status404NotFound)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/ClientService/UpdateClient")]
-        public async Task<IActionResult> UpdateClient(Guid id, Client updatedUser)
+        public async Task<ActionResult<Client>> UpdateClient(Guid id, Client updatedUser)
         {
             if (id != updatedUser.Id)
             {
@@ -92,7 +114,7 @@ namespace WebApp.ApiControllers
                 throw new BadRequestException("Failed to update client information.");
             }
 
-            return NoContent();
+            return Ok(updatedUser);
         }
     }
 }

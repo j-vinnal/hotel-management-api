@@ -1,5 +1,4 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Net;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 using App.DAL.EF;
@@ -61,11 +60,17 @@ public class AccountController : ControllerBase
     /// <param name="registrationData">The registration information.</param>
     /// <param name="expiresInSeconds">The expiration time for the JWT token in seconds.</param>
     /// <returns>A JWT response containing the token and refresh token.</returns>
+    /// <response code="201">Returns the JWT token and refresh token if registration is successful.</response>
+    /// <response code="400">If the registration data is invalid.</response>
+    /// <response code="404">If the user is not found after registration.</response>
+    /// <response code="500">If an internal server error occurs.</response>
     [HttpPost]
     [Produces("application/json")]
     [Consumes("application/json")]
-    [ProducesResponseType<JWTResponse>((int)HttpStatusCode.OK)]
-    [ProducesResponseType<RestApiErrorResponse>((int)HttpStatusCode.BadRequest)]
+    [ProducesResponseType<JWTResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
     [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/AccountService/Register")]
     public async Task<ActionResult<JWTResponse>> Register(
         [FromBody] RegisterInfo registrationData,
@@ -145,7 +150,7 @@ public class AccountController : ControllerBase
             expiresInSeconds
         );
         var res = new JWTResponse() { Jwt = jwt, RefreshToken = refreshToken.RefreshToken };
-        return Ok(res);
+        return CreatedAtAction(nameof(Register), res);
     }
 
     /// <summary>
@@ -154,7 +159,17 @@ public class AccountController : ControllerBase
     /// <param name="loginData">The login information.</param>
     /// <param name="expiresInSeconds">The expiration time for the JWT token in seconds.</param>
     /// <returns>A JWT response containing the token and refresh token.</returns>
+    /// <response code="200">Returns the JWT token and refresh token if login is successful.</response>
+    /// <response code="400">If the login data is invalid.</response>
+    /// <response code="404">If the user is not found or password is incorrect.</response>
+    /// <response code="500">If an internal server error occurs.</response>
     [HttpPost]
+    [Produces("application/json")]
+    [Consumes("application/json")]
+    [ProducesResponseType<JWTResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
     [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/AccountService/Login")]
     public async Task<ActionResult<JWTResponse>> Login([FromBody] LoginInfo loginData, [FromQuery] int expiresInSeconds)
     {
@@ -226,7 +241,17 @@ public class AccountController : ControllerBase
     /// <param name="tokenRefreshData">The token refresh information.</param>
     /// <param name="expiresInSeconds">The expiration time for the new JWT token in seconds.</param>
     /// <returns>A JWT response containing the new token and refresh token.</returns>
+    /// <response code="200">Returns the new JWT token and refresh token if refresh is successful.</response>
+    /// <response code="400">If the token refresh data is invalid.</response>
+    /// <response code="404">If the user or refresh token is not found.</response>
+    /// <response code="500">If an internal server error occurs.</response>
     [HttpPost]
+    [Produces("application/json")]
+    [Consumes("application/json")]
+    [ProducesResponseType<JWTResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
     [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/AccountService/RefreshTokenData")]
     public async Task<ActionResult<JWTResponse>> RefreshTokenData(
         [FromBody] TokenRefreshInfo tokenRefreshData,
@@ -335,8 +360,18 @@ public class AccountController : ControllerBase
     /// </summary>
     /// <param name="logout">The logout information containing the refresh token to invalidate.</param>
     /// <returns>The number of tokens deleted.</returns>
+    /// <response code="200">If the logout is successful and tokens are invalidated.</response>
+    /// <response code="400">If the logout data is invalid.</response>
+    /// <response code="404">If the user or refresh token is not found.</response>
+    /// <response code="500">If an internal server error occurs.</response>
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [HttpPost]
+    [Produces("application/json")]
+    [Consumes("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
     [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/AccountService/Logout")]
     public async Task<ActionResult> Logout([FromBody] LogoutInfo logout)
     {

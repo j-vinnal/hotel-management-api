@@ -1,13 +1,10 @@
-using System.Net;
 using App.Contracts.BLL;
-using App.Domain.Identity;
 using App.DTO.Public.v1;
 using App.Public;
 using Asp.Versioning;
 using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Exceptions;
@@ -45,8 +42,13 @@ namespace WebApp.ApiControllers
         /// <returns>A list of available rooms that match the criteria specified in the request.</returns>
         /// <response code="200">Returns the list of available rooms.</response>
         /// <response code="400">If the end date is earlier than the start date.</response>
+        /// <response code="500">If an internal server error occurs.</response>
         [HttpGet]
         [AllowAnonymous]
+        [Produces("application/json")]
+        [ProducesResponseType<IEnumerable<Room>>(StatusCodes.Status200OK)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/RoomService/GetRooms")]
         public async Task<ActionResult<IEnumerable<Room>>> GetRooms([FromQuery] RoomAvailabilityRequest request)
         {
@@ -77,8 +79,15 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="id">The ID of the room.</param>
         /// <returns>The room with the specified ID.</returns>
+        /// <response code="200">Returns the room with the specified ID.</response>
+        /// <response code="404">If the room is not found.</response>
+        /// <response code="500">If an internal server error occurs.</response>
         [HttpGet("{id:guid}")]
         [AllowAnonymous]
+        [Produces("application/json")]
+        [ProducesResponseType<Room>(StatusCodes.Status200OK)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status404NotFound)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/RoomService/GetRoom")]
         public async Task<ActionResult<Room>> GetRoom(Guid id)
         {
@@ -92,10 +101,20 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="id">The ID of the room to update.</param>
         /// <param name="roomDto">The updated room data.</param>
-        /// <returns>No content if successful.</returns>
+        /// <returns>The updated room data if the update is successful.</returns>
+        /// <response code="200">If the room is successfully updated.</response>
+        /// <response code="400">If the room data is invalid.</response>
+        /// <response code="404">If the room is not found.</response>
+        /// <response code="500">If an internal server error occurs.</response>
         [HttpPut("{id}")]
+        [Produces("application/json")]
+        [Consumes("application/json")]
+        [ProducesResponseType<Room>(StatusCodes.Status200OK)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status404NotFound)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/RoomService/PutRoom")]
-        public async Task<IActionResult> PutRoom(Guid id, Room roomDto)
+        public async Task<ActionResult<Room>> PutRoom(Guid id, Room roomDto)
         {
             if (id != roomDto.Id)
             {
@@ -121,7 +140,7 @@ namespace WebApp.ApiControllers
                 }
             }
 
-            return NoContent();
+            return Ok(roomDto);
         }
 
         /// <summary>
@@ -129,7 +148,15 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="roomDto">The room data to create.</param>
         /// <returns>The created room.</returns>
+        /// <response code="201">Returns the created room.</response>
+        /// <response code="400">If the room data is invalid.</response>
+        /// <response code="500">If an internal server error occurs.</response>
         [HttpPost]
+        [Produces("application/json")]
+        [Consumes("application/json")]
+        [ProducesResponseType<Room>(StatusCodes.Status201Created)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/RoomService/PostRoom")]
         public async Task<ActionResult<Room>> PostRoom(Room roomDto)
         {
@@ -137,7 +164,7 @@ namespace WebApp.ApiControllers
             _bll.RoomService.Add(room);
             await _bll.SaveChangesAsync();
 
-            return CreatedAtAction("GetRoom", new { id = room.Id }, _mapper.Map(room));
+            return CreatedAtAction(nameof(GetRoom), new { id = room.Id }, _mapper.Map(room));
         }
 
         /// <summary>
@@ -145,7 +172,13 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="id">The ID of the room to delete.</param>
         /// <returns>No content if successful.</returns>
+        /// <response code="204">If the room is successfully deleted.</response>
+        /// <response code="404">If the room is not found.</response>
+        /// <response code="500">If an internal server error occurs.</response>
         [HttpDelete("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status404NotFound)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/RoomService/DeleteRoom")]
         public async Task<IActionResult> DeleteRoom(Guid id)
         {

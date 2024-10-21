@@ -50,7 +50,14 @@ namespace WebApp.ApiControllers
         /// If true, the user will see all bookings.
         /// </param>
         /// <returns>A list of bookings.</returns>
+        /// <response code="200">Returns the list of bookings.</response>
+        /// <response code="400">If the request is invalid.</response>
+        /// <response code="500">If an internal server error occurs.</response>
         [HttpGet]
+        [Produces("application/json")]
+        [ProducesResponseType<IEnumerable<Booking>>(StatusCodes.Status200OK)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/GetBookings")]
         public async Task<ActionResult<IEnumerable<Booking>>> GetBookings(bool viewAll = true)
         {
@@ -85,7 +92,14 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="id">The ID of the booking.</param>
         /// <returns>The booking with the specified ID.</returns>
+        /// <response code="200">Returns the booking with the specified ID.</response>
+        /// <response code="404">If the booking is not found.</response>
+        /// <response code="500">If an internal server error occurs.</response>
         [HttpGet("{id:guid}")]
+        [Produces("application/json")]
+        [ProducesResponseType<Booking>(StatusCodes.Status200OK)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status404NotFound)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/GetBooking")]
         public async Task<ActionResult<Booking>> GetBooking(Guid id)
         {
@@ -118,11 +132,21 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="id">The ID of the booking to update.</param>
         /// <param name="bookingDto">The updated booking data.</param>
-        /// <returns>No content if successful, or a bad request if the room is already booked for the selected dates.</returns>
+        /// <returns>The updated booking data if successful.</returns>
+        /// <response code="200">If the booking is successfully updated.</response>
+        /// <response code="400">If the booking data is invalid.</response>
+        /// <response code="404">If the booking is not found.</response>
+        /// <response code="500">If an internal server error occurs.</response>
         [Authorize(Roles = RoleConstants.Admin)]
         [HttpPut("{id:guid}")]
+        [Produces("application/json")]
+        [Consumes("application/json")]
+        [ProducesResponseType<Booking>(StatusCodes.Status200OK)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status404NotFound)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/PutBooking")]
-        public async Task<IActionResult> PutBooking(Guid id, Booking bookingDto)
+        public async Task<ActionResult<Booking>> PutBooking(Guid id, Booking bookingDto)
         {
             if (id != bookingDto.Id)
             {
@@ -170,18 +194,23 @@ namespace WebApp.ApiControllers
                 }
             }
 
-            return NoContent();
+            return Ok(bookingDto);
         }
 
         /// <summary>
         /// Creates a new booking.
         /// </summary>
         /// <param name="bookingDto">The booking data to create.</param>
-        /// <returns>
-        /// The created booking if successful.
-        /// Returns a bad request if the room is already booked for the selected dates.
-        /// </returns>
+        /// <returns>The created booking if successful.</returns>
+        /// <response code="201">Returns the created booking.</response>
+        /// <response code="400">If the booking data is invalid.</response>
+        /// <response code="500">If an internal server error occurs.</response>
         [HttpPost]
+        [Produces("application/json")]
+        [Consumes("application/json")]
+        [ProducesResponseType<Booking>(StatusCodes.Status201Created)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/PostBooking")]
         public async Task<ActionResult<Booking>> PostBooking(Booking bookingDto)
         {
@@ -218,15 +247,23 @@ namespace WebApp.ApiControllers
             _bll.BookingService.Add(booking);
             await _bll.SaveChangesAsync();
 
-            return CreatedAtAction("GetBooking", new { id = booking.Id }, _mapper.Map(booking));
+            return CreatedAtAction(nameof(GetBooking), new { id = booking.Id }, _mapper.Map(booking));
         }
 
         /// <summary>
         /// Cancels a specific booking.
         /// </summary>
         /// <param name="id">The ID of the booking to cancel.</param>
-        /// <returns>No content if successful, or a forbidden status if not allowed.</returns>
+        /// <returns>No content if successful.</returns>
+        /// <response code="204">If the booking is successfully cancelled.</response>
+        /// <response code="400">If the cancellation request is invalid.</response>
+        /// <response code="404">If the booking is not found.</response>
+        /// <response code="500">If an internal server error occurs.</response>
         [HttpPost("{id:guid}/cancel")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status404NotFound)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/CancelBooking")]
         public async Task<IActionResult> CancelBooking(Guid id)
         {
@@ -259,8 +296,14 @@ namespace WebApp.ApiControllers
         /// </summary>
         /// <param name="id">The ID of the booking to delete.</param>
         /// <returns>No content if successful.</returns>
+        /// <response code="204">If the booking is successfully deleted.</response>
+        /// <response code="404">If the booking is not found.</response>
+        /// <response code="500">If an internal server error occurs.</response>
         [Authorize(Roles = RoleConstants.Admin)]
         [HttpDelete("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status404NotFound)]
+        [ProducesResponseType<RestApiErrorResponse>(StatusCodes.Status500InternalServerError)]
         [XRoadService("INSTANCE/CLASS/MEMBER/SUBSYSTEM/BookingService/DeleteBooking")]
         public async Task<IActionResult> DeleteBooking(Guid id)
         {
