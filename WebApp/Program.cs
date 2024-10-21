@@ -172,10 +172,12 @@ builder.Services.AddControllers()
 
             var errorResponse = new RestApiErrorResponse
             {
-                Status = HttpStatusCode.BadRequest,
-                Error = string.Join("; ", errors)
+                Type = "Client.BadRequest",
+                Message = string.Join("; ", errors),
+                Detail = Guid.NewGuid().ToString()
             };
 
+            context.HttpContext.Response.Headers.Append("X-Road-Error", "Client.BadRequest");
             return new BadRequestObjectResult(errorResponse);
         };
     });
@@ -248,8 +250,6 @@ app.MapRazorPages();
 
 
 app.Run();
-
-
 static async void SetupAppData(IApplicationBuilder app, IConfiguration configuration)
 {
     //DI engine
@@ -317,6 +317,9 @@ static async void SetupAppData(IApplicationBuilder app, IConfiguration configura
 public partial class Program
 {
 }
+
+
+
 
 
 

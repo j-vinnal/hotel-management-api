@@ -3,6 +3,7 @@ using Asp.Versioning.ApiExplorer;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using WebApp.Filters;
 
 namespace WebApp;
 
@@ -53,6 +54,7 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
         // use FullName for schemaId - avoids conflicts between classes using the same name (which are in different namespaces)
         options.CustomSchemaIds(i => i.FullName);
 
+        // add security definition for Bearer token
         options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
         {
             Description =
@@ -66,6 +68,7 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
             Scheme = "Bearer"
         });
 
+   
         options.AddSecurityRequirement(new OpenApiSecurityRequirement()
         {
             {
@@ -83,5 +86,8 @@ public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
                 new List<string>()
             }
         });
+
+        // Register the X-Road-Client header operation filter
+        options.OperationFilter<SwaggerXRoadClientHeaderOperationFilter>();
     }
 }
